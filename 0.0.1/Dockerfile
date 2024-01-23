@@ -15,6 +15,7 @@ RUN apk update \
         util-linux \
         supervisor \
         bash \
+        ttyd \
         nginx \
         rsyslog \
         python3-dev \
@@ -41,7 +42,7 @@ RUN chmod u+x,g+x /usr/local/bin/entrypoint.sh \
 # setup gunicorn
 # RUN mkdir /run/gunicorn-helloworld
 # RUN mkdir /var/www/static
-RUN mkdir /usr/src/helloworld
+RUN mkdir /usr/src/awsmgr
 
 # COPY ${BASE_DOCKER_DIR}/nginx/proxy_params /etc/nginx/proxy_params
 # COPY ${BASE_DOCKER_DIR}/nginx/http.d/default.conf  /etc/nginx/http.d/default.conf
@@ -51,7 +52,7 @@ RUN mkdir /usr/src/helloworld
 
 # RUN chmod u+x,g+x /etc/init.d/gunicorn-helloworld && rc-update add gunicorn-helloworld default
 
-WORKDIR /usr/src/helloworld
+WORKDIR /usr/src/awsmgr
 
 # EXPOSE 80
 
@@ -60,15 +61,27 @@ WORKDIR /usr/src/helloworld
 
 RUN apk update && apk upgrade
 
+COPY ${DOCKER_DIR}/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+COPY ${DOCKER_DIR}/supervisor/conf.d/ /etc/supervisor/conf.d/.
+
+# Create a directory for supervisord logs
+RUN mkdir -p /var/log/supervisor
+RUN touch /var/log/supervisor/gunicorn.log
+RUN chown nginx:www-data /var/log/supervisor/gunicorn.log
+RUN chmod g+rw /var/log/supervisor/gunicorn.log
+
+
 # COPY . .
 
 # CMD [ "python", "./your-daemon-or-script.py" ]
 
 # CMD [ "openrc", "default" ]
-CMD tail -f /dev/null
+# CMD tail -f /dev/null
 
 # CMD bash
 ## A neat trick to keep this docker instance running..
 # CMD tail -f /dev/null
 
 # ENTRYPOINT [ "entrypoint.sh" ]
+
+/usr/bin/supervisord -c /etc/supervisor/supervisord.conf

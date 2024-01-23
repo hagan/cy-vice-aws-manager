@@ -3,4 +3,4 @@ set -e
 
 echo "Welcome to AWS resource manager"
 
-tail -f /dev/null
+/usr/bin/supervisord -c /etc/supervisor/supervisord.conf

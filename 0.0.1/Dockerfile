@@ -82,6 +82,4 @@ RUN chmod g+rw /var/log/supervisor/gunicorn.log
 ## A neat trick to keep this docker instance running..
 # CMD tail -f /dev/null
 
-# ENTRYPOINT [ "entrypoint.sh" ]
-
-/usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]

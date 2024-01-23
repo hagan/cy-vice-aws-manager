@@ -72,15 +72,14 @@ WORKDIR /usr/src/awsmgr
 
 RUN apk update && apk upgrade
 RUN echo "COPY ${DOCKER_DIR}/etc/supervisord.conf /etc/supervisord.conf"
-# COPY ${DOCKER_DIR}/etc/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
+COPY ${DOCKER_DIR}/etc/supervisor.d/ /etc/supervisor.d/
 # COPY ${DOCKER_DIR}/supervisor/conf.d/ /etc/supervisor/conf.d/.
 
 # Create a directory for supervisord logs
 RUN mkdir -p /var/log/supervisor
-RUN touch /var/log/supervisor/gunicorn.log
-RUN chown nginx:www-data /var/log/supervisor/gunicorn.log
-RUN chmod g+rw /var/log/supervisor/gunicorn.log
-
+RUN touch /var/log/gunicorn.log
+RUN chown nginx:www-data /var/log/gunicorn.log
+RUN chmod g+rw /var/log/gunicorn.log
 
 # COPY . .
 

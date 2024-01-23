@@ -6,7 +6,7 @@ ARG DOCKER_TAG='0.0.1'
 ARG DOCKER_IMAGE=${DOCKER_NAME}:${DOCKER_TAG}
 
 # relative path to our Dockerfile
-ARG DOCKER_DIR='./src/vice/latest'
+ARG DOCKER_DIR='./src/vice/${DOCKER_TAG}'
 
 # app specific paths internal to the image
 ARG STATIC_ROOT='/var/www/static'

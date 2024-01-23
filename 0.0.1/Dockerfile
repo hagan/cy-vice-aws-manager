@@ -73,7 +73,7 @@ WORKDIR /usr/src/awsmgr
 RUN apk update && apk upgrade
 
 COPY ${DOCKER_DIR}/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
-COPY ${DOCKER_DIR}/supervisor/conf.d/ /etc/supervisor/conf.d/.
+# COPY ${DOCKER_DIR}/supervisor/conf.d/ /etc/supervisor/conf.d/.
 
 # Create a directory for supervisord logs
 RUN mkdir -p /var/log/supervisor

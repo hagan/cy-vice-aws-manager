@@ -1,13 +1,13 @@
 # Dockerfile.vice_python_base
 # src: https://github.com/docker-library/python/blob/35d09c044857f7aef2bf24791027f3e3fe2c34dd/3.11/alpine3.18/Dockerfile
 FROM python:3.11.6-alpine3.18
-# ARG BASE_IMAGE_NAME='vice_python_base'
-# ARG BASE_TAG='0.0.1'
+ARG BASE_IMAGE_NAME='vice_python_base'
+ARG BASE_TAG='0.0.1'
 ARG BASE_DOCKER_DIR='.'
-# RUN echo "BASE_DOCKER_IMAGE=${BASE_IMAGE_NAME}:${BASE_TAG}" > .env
-# RUN echo "BASE_IMAGE_NAME=$BASE_IMAGE_NAME" >> .env
-# RUN echo "BASE_TAG=${BASE_TAG}" >> .env
-# RUN echo "BASE_DIR=${BASE_DOCKER_DIR}" >> .env
+RUN echo "BASE_DOCKER_IMAGE=${BASE_IMAGE_NAME}:${BASE_TAG}" > .env
+RUN echo "BASE_IMAGE_NAME=$BASE_IMAGE_NAME" >> .env
+RUN echo "BASE_TAG=${BASE_TAG}" >> .env
+RUN echo "BASE_DIR=${BASE_DOCKER_DIR}" >> .env
 
 # build-essential(debian) / alpine-sdk(alpine)
 RUN apk update \

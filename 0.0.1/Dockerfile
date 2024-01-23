@@ -1,13 +1,24 @@
 # Dockerfile.vice_python_base
 # src: https://github.com/docker-library/python/blob/35d09c044857f7aef2bf24791027f3e3fe2c34dd/3.11/alpine3.18/Dockerfile
 FROM python:3.11.6-alpine3.18
-ARG BASE_IMAGE_NAME='vice_python_base'
-ARG BASE_TAG='0.0.1'
-ARG BASE_DOCKER_DIR='./src/vice/latest'
-RUN echo "BASE_DOCKER_IMAGE=${BASE_IMAGE_NAME}:${BASE_TAG}" > .env
-RUN echo "BASE_IMAGE_NAME=$BASE_IMAGE_NAME" >> .env
-RUN echo "BASE_TAG=${BASE_TAG}" >> .env
-RUN echo "BASE_DIR=${BASE_DOCKER_DIR}" >> .env
+ARG DOCKER_NAME='viceamazonmgr'
+ARG DOCKER_TAG='0.0.1'
+ARG DOCKER_IMAGE=${DOCKER_NAME}:${DOCKER_TAG}
+
+# relative path to our Dockerfile
+ARG DOCKER_DIR='./src/vice/latest'
+
+# app specific paths internal to the image
+ARG STATIC_ROOT='/var/www/static'
+
+# save vars to our environment
+RUN echo "DOCKER_NAME=${DOCKER_NAME}" > .env
+RUN echo "DOCKER_TAG=${DOCKER_TAG}" >> .env
+RUN echo "DOCKER_IMAGE=${DOCKER_IMAGE}" >> .env
+
+# Save environment vars for our application
+RUN echo "STATIC_ROOT=${STATIC_ROOT}" >> .env
+
 
 # build-essential(debian) / alpine-sdk(alpine)
 RUN apk update \
@@ -35,7 +46,7 @@ RUN apk update \
 # RUN rc-update add rsyslog default
 # RUN mkdir /run/openrc && touch /run/openrc/softlevel
 
-COPY ${BASE_DOCKER_DIR}/entrypoint.sh /usr/local/bin/
+COPY ${DOCKER_DIR}/entrypoint.sh /usr/local/bin/
 RUN chmod u+x,g+x /usr/local/bin/entrypoint.sh \
   && ln -s /usr/local/bin/entrypoint.sh / # backwards compat
 

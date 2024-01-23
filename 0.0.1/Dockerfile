@@ -7,7 +7,11 @@ ARG BASE_DOCKER_DIR='.'
 RUN echo "BASE_DOCKER_IMAGE=${BASE_IMAGE_NAME}:${BASE_TAG}" > .env
 RUN echo "BASE_IMAGE_NAME=$BASE_IMAGE_NAME" >> .env
 RUN echo "BASE_TAG=${BASE_TAG}" >> .env
+RUN pwd
+RUN ls
+RUN echo "BASE_DIR=${BASE_DOCKER_DIR}"
 RUN echo "BASE_DIR=${BASE_DOCKER_DIR}" >> .env
+RUN cat .env
 
 # build-essential(debian) / alpine-sdk(alpine)
 RUN apk update \

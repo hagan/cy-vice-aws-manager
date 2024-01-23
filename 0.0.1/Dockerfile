@@ -71,7 +71,7 @@ WORKDIR /usr/src/awsmgr
 # RUN pip install --no-cache-dir -r requirements-base.txt
 
 RUN apk update && apk upgrade
-
+RUN echo "COPY ${DOCKER_DIR}/supervisor/supervisord.conf /etc/supervisor/supervisord.conf"
 COPY ${DOCKER_DIR}/supervisor/supervisord.conf /etc/supervisor/supervisord.conf
 # COPY ${DOCKER_DIR}/supervisor/conf.d/ /etc/supervisor/conf.d/.
 

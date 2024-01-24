@@ -1,6 +1,6 @@
 # Dockerfile.vice_python_base
 # src: https://github.com/docker-library/python/blob/35d09c044857f7aef2bf24791027f3e3fe2c34dd/3.11/alpine3.18/Dockerfile
-FROM python:3.11.6-alpine3.18
+FROM python:3.11-alpine
 ARG DOCKER_NAME='viceamazonmgr'
 ARG DOCKER_TAG='0.0.1'
 ARG DOCKER_IMAGE=${DOCKER_NAME}:${DOCKER_TAG}
@@ -29,11 +29,18 @@ RUN apk update \
         ttyd \
         nginx \
         rsyslog \
-        python3-dev \
         curl \
         vim \
         alpine-sdk \ 
         procps
+ENV PYTHONUNBUFFERED=1
+RUN apk add --update --no-cache \
+    python3 \
+    python3-dev \
+    && ln -sf python3 /usr/bin/python
+RUN python3 -m ensurepip
+RUN pip3 install --no-cache --upgrade pip setuptools
+
 
 # Create a directory to store PID files and run directories
 # RUN rc-update add rsyslog default \

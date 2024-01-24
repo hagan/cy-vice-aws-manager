@@ -73,7 +73,6 @@ RUN mkdir /usr/src/awsmgr
 WORKDIR /usr/src/awsmgr
 
 EXPOSE 80
-EXPOSE 7681
 
 # COPY ${BASE_DOCKER_DIR}/requirements-base.txt ./
 # RUN pip install --no-cache-dir -r requirements-base.txt

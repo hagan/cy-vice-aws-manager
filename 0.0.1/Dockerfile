@@ -98,7 +98,11 @@ RUN touch /var/log/gunicorn.log
 RUN chown nginx:www-data /var/log/gunicorn.log
 RUN chmod g+rw /var/log/gunicorn.log
 
+
+## Using untracked dist (must manually add after updates)
 COPY ${DOCKER_DIR}/dist/ /tmp/wheels/.
+## maybe do a compile from source option?
+# ....
 
 # COPY ${DOCKER_DIR}/wheels/${PIP_WHEEL_FILENAME} /tmp/wheels/.
 # RUN pip install /tmp/wheels/${PIP_WHEEL_FILENAME}

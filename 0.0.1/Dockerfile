@@ -85,7 +85,6 @@ COPY ${DOCKER_DIR}/etc/nginx/proxy_params /etc/nginx/proxy_params
 COPY ${DOCKER_DIR}/etc/nginx/http.d/ /etc/nginx/http.d/
 # gunicorn
 COPY ${DOCKER_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.py
-COPY ${DOCKER_DIR}/etc/gunicorn/gunicorn-awsmgr.init /etc/init.d/gunicorn-awsmgr
 
 # Create directory for gunicorn!
 RUN mkdir -p /run/gunicorn-awsmgr

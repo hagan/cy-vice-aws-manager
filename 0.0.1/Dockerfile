@@ -79,8 +79,12 @@ WORKDIR /usr/src/awsmgr
 
 RUN apk update && apk upgrade
 
+# supervisord
 COPY ${DOCKER_DIR}/etc/supervisord.conf /etc/supervisord.conf
 COPY ${DOCKER_DIR}/etc/supervisor.d/ /etc/supervisor.d/
+# nginx
+COPY ${DOCKER_DIR}/etc/nginx/proxy_params /etc/nginx/proxy_params
+COPY ${DOCKER_DIR}/etc/nginx/http.d/ /etc/nginx/http.d/
 
 # Create a directory for supervisord logs
 RUN mkdir -p /var/log/supervisor
@@ -98,5 +102,12 @@ RUN chmod g+rw /var/log/gunicorn.log
 # CMD bash
 ## A neat trick to keep this docker instance running..
 # CMD tail -f /dev/null
+
+## Add our "normal" cyverse user
+RUN adduser -D cyverse
+RUN passwd -u cyverse
+
+# COPY ${DOCKER_DIR}/cyverse_sudo  /etc/sudoers.d/cyverse_sudo
+# RUN chmod 0440 /etc/sudoers.d/cyverse_sudo
 
 ENTRYPOINT ["bash", "/usr/local/bin/entrypoint.sh"]

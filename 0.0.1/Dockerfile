@@ -40,7 +40,8 @@ RUN apk add --update --no-cache \
 RUN python3 -m ensurepip
 RUN pip3 install --no-cache --upgrade pip setuptools
 
-
+RUN pip3 install --no-cache --upgrade gunicorn
+RUN pip3 install --no-cache --upgrade flask
 # Create a directory to store PID files and run directories
 # RUN rc-update add rsyslog default \
 #   &&  mkdir /run/openrc \
@@ -107,7 +108,9 @@ COPY ${DOCKER_DIR}/dist/ /tmp/wheels/.
 # RUN pip install /tmp/wheels/${PIP_WHEEL_FILENAME}
 # RUN flask collectstatic --no-input
 # ls -1t dist/*.whl | head -n 1
-RUN $wheel_file=$(find /tmp/wheels -type f -name "*.whl" -printf '%T+ %p\n' | sort -r | awk '{ $1=""; print substr($0,2) }') && pip install $wheel_file
+# RUN wheel_file=$(find /tmp/wheels -type f -name "*.whl" -printf '%T+ %p\n' | sort -r | awk '{ $1=""; print substr($0,2) }') && echo "wheel_file = $wheel_file"
+
+RUN wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) && echo "wheel_file = $wheel_file" && pip install $wheel_file
 
 # COPY . .
 

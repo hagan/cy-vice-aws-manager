@@ -3,7 +3,9 @@
 Use this to generate a base image to upload into docker hub to generate project images from.
 i.e.
 ```
-  docker build -t hagan/pynode:alpine3-19 image . --no-cache=true --platform=linux/amd64
-  docker build -t hagan/pynode:alpine3-19 image . --no-cache=true --platform=linux/arm64
-  docker push hagan/pynode:alpine-3.19
+  # build both platforms and push to hub.docker.com
+  docker buildx create --name mybuilder --use
+  docker buildx inspect --bootstrap
+  docker login
+  docker buildx build --platform linux/amd64,linux/arm64 -t hagan/pynode:alpine3-19 --push .
 ```

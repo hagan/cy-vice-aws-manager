@@ -40,7 +40,8 @@ if not 'workers' in locals():
     # workers = 4
     workers = 2
 
-calc_workers = multiprocessing.cpu_count() * 2 + 1
+# calc_workers = multiprocessing.cpu_count() * 2 + 1
+calc_workers = 2
 print(f"if using standard equation for workers (cpu*2+1), we would have used {calc_workers}")
 
 threads = 3

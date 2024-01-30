@@ -1,0 +1,25 @@
+.DS_Store
+LICENSE
+README.md
+
+test
+
+docker-compose.yml
+docker
+Dockerfile
+.dockerignore
+DockerCerts
+
+.git
+.gitkeep
+.gitignore
+
+node_modules
+
+pids
+*.pid
+*.seed
+
+# Us specifically
+npm-debug.log
+.env.local

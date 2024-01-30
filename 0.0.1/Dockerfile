@@ -1,9 +1,9 @@
-# Dockerfile.vice_python_base
-# src: https://github.com/docker-library/python/blob/35d09c044857f7aef2bf24791027f3e3fe2c34dd/3.11/alpine3.18/Dockerfile
-FROM hagan/pynode:alpine3.19
+ARG SRC_DOCKER_IMAGE
+ARG SRC_DOCKER_VER
+FROM ${SRC_DOCKER_IMAGE}:${SRC_DOCKER_VER}
 
 ARG DOCKER_NAME='viceamazonmgr'
-ARG DOCKER_TAG='0.0.1'
+ARG DOCKER_TAG='v0.0.1'
 ARG DOCKER_IMAGE=${DOCKER_NAME}:${DOCKER_TAG}
 
 # relative path to our Dockerfile
@@ -11,6 +11,9 @@ ARG DOCKER_DIR='./src/vice/${DOCKER_TAG}'
 
 # app specific paths internal to the image
 ARG STATIC_ROOT='/var/www/static'
+
+ARG NODE_SOCK='/run/nginx/node-nextjs.socket'
+ENV NODE_SOCK=${NODE_SOCK}
 
 # save vars to our environment
 RUN echo "DOCKER_NAME=${DOCKER_NAME}" > .env
@@ -29,38 +32,68 @@ COPY ${DOCKER_DIR}/etc/supervisord.conf /etc/supervisord.conf
 COPY ${DOCKER_DIR}/etc/supervisor.d/ /etc/supervisor.d/
 RUN mkdir -p /var/log/supervisor
 
-# Build notes: re2/re2-dev/libffi/libffi-dev & openssl-dev required by grpcio
-# which is required by our flask app.
-# libffi-dev already installed
-# WORKS TO HERE
-RUN apk update \
-  && apk add --no-cache \
-    supervisor \
-    build-base \
-    re2 \
-    re2-dev \
-    libffi \
-    libffi-dev \
-    openssl-dev \
-    python3-dev
+# Nginx stuff
+RUN chown nginx:nginx /run/nginx && chmod 0775 /run/nginx
+## !!!!! NEED TO FIX THIS SO OUR SOCKETS CANT WRITE node<->nginx..
+## Fix: Move the socket to a better place like /run/node-awsmgr/express.sock
+RUN addgroup node nginx
+RUN addgroup nginx node
+COPY ${DOCKER_DIR}/etc/nginx/proxy_params /etc/nginx/proxy_params
+COPY ${DOCKER_DIR}/etc/nginx/http.d/ /etc/nginx/http.d/
 
-# Install projects
+# Gunicorn stuff
+RUN addgroup -g 1001 gunicorn \
+    && adduser -u 1001 -G gunicorn -s /bin/sh -D gunicorn
+COPY ${DOCKER_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.py
+# Create directory for gunicorn!
+RUN mkdir -p /run/gunicorn-awsmgr
+RUN chown gunicorn:gunicorn /run/gunicorn-awsmgr
+RUN chmod 0775 /run/gunicorn-awsmgr
+## let nginx read/write to the gunicorn socket
+RUN addgroup nginx gunicorn
+
+# Create projects directories
 RUN mkdir /tmp/wheels
 RUN mkdir /tmp/npms
+# RUN mkdir /usr/src/awsmgr
 
-# Python updates
-RUN pip install --upgrade pip
-
+# Install Python Amazon Manager pacakge
 COPY ${DOCKER_DIR}/dist/flask/ /tmp/wheels/.
 # Dependency cache mount to /root/.cache/pip!!
 RUN --mount=type=cache,target=/root/.cache/pip wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) && echo "wheel_file = $wheel_file" && pip install $wheel_file
 
-COPY ${DOCKER_DIR}/dist/ui/ /tmp/npms/.
+# Install NodeJS/NextJS Amazon package (eventually i'd like this to work from a package!)
+# COPY ${DOCKER_DIR}/dist/ui/ /tmp/npms/.
+# RUN cd /usr/src/awsmgr && npm_pkg=$(ls -tp /tmp/npms/*.tgz | head -n1) && echo "npm_pkg = $npm_pkg" && npm install -g $npm_pkg
+# Install dependencies for the npm package
+# RUN cd /usr/src/awsmgr && npm_pkg_dir=$(npm list -g awsmgr --parseable) && echo "npm_kg_dir = $npm_pkg_dir" && cd $npm_pkg_dir && npm install -g
 
-RUN ls /tmp/npms/
+## copy NextJS project from source
+COPY ./src/ui/ /usr/src/awsmgr-ui/
+RUN find /usr/src/awsmgr-ui -type f -executable -exec chmod 0775 {} \; && \
+  find /usr/src/awsmgr-ui -type f ! -executable -exec chmod 0664 {} \; && \
+  find /usr/src/awsmgr-ui -type d -exec chmod 0775 {} \; && \
+  chown -R node:node /usr/src/awsmgr-ui
+
+## we might not need to remove the node_modules, but seems to have issues with arm vs amd.
+RUN test -d /usr/src/awsmgr-ui/node_modules && rm -rvf /usr/src/awsmgr-ui/node_modules && \
+  test -f /usr/src/awsmgr-ui/package-log.json && rm /usr/src/awsmgr-ui/package-log.json && \
+  test -f /usr/src/awsmgr-ui/.env.local && rm /usr/src/awsmgr-ui/.env.local || true
+
+USER node
+RUN --mount=type=cache,target=/root/.npm \
+  cd /usr/src/awsmgr-ui && \
+  PATH=/usr/local/bin:/usr/local/bin:/usr/bin:/bin && \
+  npm install
+USER root
+
+# Create our lower privileged user for ttyd...
+RUN addgroup -g 1002 cyverse && \
+  adduser -u 1002 -G cyverse -s /bin/sh -D cyverse
+RUN passwd -u cyverse
 
 # END
 EXPOSE 80
-RUN mkdir /usr/src/awsmgr
+
 WORKDIR /usr/src/awsmgr
 ENTRYPOINT ["sh", "/usr/local/bin/entrypoint.sh"]

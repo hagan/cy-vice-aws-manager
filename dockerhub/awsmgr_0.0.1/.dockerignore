@@ -4,11 +4,7 @@ README.md
 
 test
 
-docker-compose.yml
-docker
-Dockerfile
 .dockerignore
-DockerCerts
 
 .git
 .gitkeep

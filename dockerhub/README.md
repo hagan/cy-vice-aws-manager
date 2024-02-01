@@ -16,9 +16,11 @@ i.e.
   docker login
 
   # NOTE: Update PYNODE_VERSION if we change anything in Dockerfile
-  PYNODE_VERSION=alpine3-19v2 && docker buildx build --platform linux/amd64,linux/arm64 -t hagan/pynode:${PYNODE_VERSION} --push .
+  export PYNODE_VERSION=alpine3-19v2
+  export AWSMGR_VERSION=v0.0.2
+  docker buildx build --platform linux/amd64,linux/arm64 -t hagan/pynode:${PYNODE_VERSION} --push .
 
   # Note: Update AWSMGR_VERSION if anything changed in Dockerfile (and update Dockerfile if source image changed above)
   ## todo: update so we use build-arg and that's easier
-  AWSMGR_VERSION=v0.0.2 && docker buildx build --platform linux/amd64,linux/arm64 -t hagan/awsmgr:${AWSMGR_VERSION} --push .
+  docker buildx build --build-arg PYNODE_VERSION=${PYNODE_VERSION} --platform linux/amd64,linux/arm64 -t hagan/awsmgr:${AWSMGR_VERSION} --push .
 ```

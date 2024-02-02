@@ -23,8 +23,8 @@ LABEL "homepage"="https://pulumi.com"
 LABEL "maintainer"="Pulumi Team <team@pulumi.com>"
 LABEL org.opencontainers.image.description="The Pulumi CLI, in a Docker container."
 
-ENV GOLANG_VERSION 1.21.1
-ENV GOLANG_SHA256 b3075ae1ce5dab85f89bc7905d1632de23ca196bd8336afd93fa97434cfa55ae
+ENV GOLANG_VERSION 1.21.6
+# ENV GOLANG_SHA256 b3075ae1ce5dab85f89bc7905d1632de23ca196bd8336afd93fa97434cfa55ae
 
 ## Alpine conversion 
 ## apt-transport-https          == NONE
@@ -82,14 +82,14 @@ RUN apk update && \
 #   rm -rf /var/lib/apt/lists/*
 
 # Install Go
-RUN curl -fsSLo /tmp/go.tgz https://golang.org/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz && \
-  echo "${GOLANG_SHA256} /tmp/go.tgz" | sha256sum -c - && \
-  tar -C /usr/local -xzf /tmp/go.tgz && \
-  rm /tmp/go.tgz && \
-  export PATH="/usr/local/go/bin:$PATH" && \
-  go version
-ENV GOPATH /go
-ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
+# RUN curl -fsSLo /tmp/go.tgz https://golang.org/dl/go${GOLANG_VERSION}.linux-amd64.tar.gz && \
+#   echo "${GOLANG_SHA256} /tmp/go.tgz" | sha256sum -c - && \
+#   tar -C /usr/local -xzf /tmp/go.tgz && \
+#   rm /tmp/go.tgz && \
+#   export PATH="/usr/local/go/bin:$PATH" && \
+#   go version
+# ENV GOPATH /go
+# ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 
 # Install Java
 RUN apk add gradle \

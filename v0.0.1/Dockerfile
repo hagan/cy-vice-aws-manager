@@ -36,8 +36,11 @@ RUN mkdir -p /var/log/supervisor
 RUN chown nginx:nginx /run/nginx && chmod 0775 /run/nginx
 ## !!!!! NEED TO FIX THIS SO OUR SOCKETS CANT WRITE node<->nginx..
 ## Fix: Move the socket to a better place like /run/node-awsmgr/express.sock
-RUN addgroup node nginx
-RUN addgroup nginx node
+
+RUN addgroup -g 102 node \
+    && adduser -u 102 -G node -s /bin/sh -D node \
+    && addgroup node nginx \
+    && addgroup nginx node
 COPY ${DOCKER_DIR}/etc/nginx/proxy_params /etc/nginx/proxy_params
 COPY ${DOCKER_DIR}/etc/nginx/http.d/ /etc/nginx/http.d/
 

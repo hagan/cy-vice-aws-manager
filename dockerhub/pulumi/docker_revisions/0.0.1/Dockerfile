@@ -12,8 +12,11 @@
 ## Azure -- no thanks
 ## kubectl maybe need this later
 
-ARG PYNODE_VERSION=alpine3-19v2
-FROM hagan/pynode:${PYNODE_VERSION} AS base
+ARG PULUMI_PARENT_IMAGE=alpine
+ARG PULUMI_PARENT_TAG=3.19
+
+# FROM ${PULUMI_PARENT_IMAGE}:${PULUMI_PARENT_TAG} AS base
+FROM ${PULUMI_PARENT_IMAGE}:${PULUMI_PARENT_TAG}
 
 LABEL "repository"="https://github.com/pulumi/pulumi"
 LABEL "homepage"="https://pulumi.com"
@@ -137,7 +140,7 @@ ENTRYPOINT ["pulumi"]
 # for more background.
 ########################################################################
 
-FROM base AS build-environment
+# FROM base AS build-environment
 
 # https://github.com/pulumi/pulumictl/releases
 ENV PULUMICTL_VERSION 0.0.32
@@ -162,35 +165,38 @@ RUN curl \
     mv pulumictl_extraction/pulumictl /usr/local/bin/pulumictl && \
     chmod a+x /usr/local/bin/pulumictl && \
     rm -Rf pulumictl_extraction && \
-    rm pulumictl.tar.gz 
-    #&& \
+    rm pulumictl.tar.gz && \
     # Install golangci-lint
-    # curl --proto "=https" \
-    # --tlsv1.2 \
-    # --silent \
-    # --show-error \
-    # --fail \
-    # --location \
-    # https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-    # | sh -s -- -b "$(go env GOPATH)/bin" "v${GOLANGCI_LINT_VERSION}" && \
-    # # Install goreleaser
-    # curl \
-    # --proto "=https" \
-    # --tlsv1.2 \
-    # --location \
-    # --fail \
-    # --verbose \
-    # --output "goreleaser.tar.gz" \
-    # "https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz" && \
-    # mkdir goreleaser_extraction && \
+    curl --proto "=https" \
+    --tlsv1.2 \
+    --silent \
+    --show-error \
+    --fail \
+    --location \
+    https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+    | sh -s -- -b "$(go env GOPATH)/bin" "v${GOLANGCI_LINT_VERSION}" && \
+    # Install goreleaser
+    curl \
+    --proto "=https" \
+    --tlsv1.2 \
+    --location \
+    --fail \
+    --verbose \
+    --output "goreleaser.tar.gz" \
+    "https://github.com/goreleaser/goreleaser/releases/download/v${GORELEASER_VERSION}/goreleaser_Linux_x86_64.tar.gz" && \
+    mkdir goreleaser_extraction && \
+    tar xvzf goreleaser.tar.gz -C goreleaser_extraction && \
     # tar --extract --gunzip --verbose --directory goreleaser_extraction --file goreleaser.tar.gz && \
-    # mv goreleaser_extraction/goreleaser /usr/local/bin/goreleaser && \
-    # chmod a+x /usr/local/bin/goreleaser && \
-    # rm -Rf goreleaser_extraction && \
-    # rm goreleaser.tar.gz
+    mv goreleaser_extraction/goreleaser /usr/local/bin/goreleaser && \
+    chmod a+x /usr/local/bin/goreleaser && \
+    rm -Rf goreleaser_extraction && \
+    rm goreleaser.tar.gz
 
 # The entrypoint of the base image is `pulumi`; we don't
 # want that for this usecase, since we'll be performing different
 # build-related tasks.
 ENTRYPOINT []
 CMD ["bash"]
+
+# Final stage
+# FROM ${PULUMI_PARENT_IMAGE}:${PULUMI_PARENT_TAG} AS final

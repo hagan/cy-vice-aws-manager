@@ -1,13 +1,13 @@
-ARG SRC_DOCKER_IMAGE=hagan/pynode
-ARG SRC_DOCKER_VER=v0.0.0
-FROM ${SRC_DOCKER_IMAGE}:${SRC_DOCKER_VER}
+ARG VICE_PARENT_IMAGE=hagan/pynode
+ARG VICE_PARENT_TAG=alpine3.19v2
+FROM ${VICE_PARENT_IMAGE}:${VICE_PARENT_TAG}
 
-ARG DOCKER_NAME='viceamazonmgr'
+ARG DOCKER_NAME='viceawsmgr'
 ARG DOCKER_TAG='v0.0.1'
 ARG DOCKER_IMAGE=${DOCKER_NAME}:${DOCKER_TAG}
 
 # relative path to our Dockerfile
-ARG DOCKER_DIR='./src/vice/${DOCKER_TAG}'
+ARG DOCKER_DIR="./src/vice/${DOCKER_TAG}"
 
 # app specific paths internal to the image
 ARG STATIC_ROOT='/var/www/static'
@@ -58,7 +58,7 @@ RUN mkdir /tmp/npms
 # RUN mkdir /usr/src/awsmgr
 
 # Install Python Amazon Manager pacakge
-COPY ${DOCKER_DIR}/dist/flask/ /tmp/wheels/.
+COPY ./src/flask/dist/ /tmp/wheels/.
 # Dependency cache mount to /root/.cache/pip!!
 RUN --mount=type=cache,target=/root/.cache/pip wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) && echo "wheel_file = $wheel_file" && pip install $wheel_file
 
@@ -84,6 +84,7 @@ USER node
 RUN --mount=type=cache,target=/root/.npm \
   cd /usr/src/awsmgr-ui && \
   PATH=/usr/local/bin:/usr/local/bin:/usr/bin:/bin && \
+  npm rebuild \
   npm install
 USER root
 
@@ -95,5 +96,4 @@ RUN passwd -u cyverse
 # END
 EXPOSE 80
 
-WORKDIR /usr/src/awsmgr
 ENTRYPOINT ["sh", "/usr/local/bin/entrypoint.sh"]

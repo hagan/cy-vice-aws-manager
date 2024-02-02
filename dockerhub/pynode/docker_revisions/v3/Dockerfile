@@ -1,7 +1,4 @@
-ARG PYNODE_PARENT_IMAGE=alpine
-ARG PYNODE_PARENT_TAG=3.19
-
-FROM ${PYNODE_PARENT_IMAGE}:${PYNODE_PARENT_TAG}
+FROM alpine:3.19 AS base
 
 ## Install Python 3.11.7
 # ensure local python is preferred over distribution python
@@ -155,6 +152,8 @@ RUN --mount=type=cache,target=/ccache set -eux; \
 	\
 	pip --version
 
+
+FROM base AS python-environment
 ## Installs NODE 
 
 ENV NODE_VERSION 21.6.1

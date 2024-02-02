@@ -1,7 +1,10 @@
 # Dockerfile.vice_python_base
 # src: https://github.com/docker-library/python/blob/35d09c044857f7aef2bf24791027f3e3fe2c34dd/3.11/alpine3.18/Dockerfile
-ARG PYNODE_VERSION=alpine-3.19v2
-FROM hagan/pynode:${PYNODE_VERSION}
+
+ARG AWSMGR_PARENT_IMAGE=hagan/pynode
+ARG AWSMGR_PARENT_TAG=alpine3-19v2
+
+FROM ${AWSMGR_PARENT_IMAGE}:${AWSMGR_PARENT_TAG}
 
 RUN mkdir -p /usr/local/lib/node_modules
 # RUN chown -R node:node /usr/local/lib/node_modules
@@ -12,10 +15,10 @@ USER root
 # These packages are taken from the awsmgr package (pre install to save time)
 
 # Fix issue with npm installing "sharp" module and missing '/lib/ld-linux-aarch64.so.1'
-RUN apk --no-cache add ca-certificates wget && \
-  wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkg.github.io/sgerrand.rsa.pub \
-  && wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.31-r0/glibc-2.31-r0.apk \
-  && apk add glibc-2.31-r0.apk
+RUN apk --no-cache add \
+    ca-certificates \
+    wget \
+    gcompat 
 
 RUN npm install -g \
   @fontsource/inter@5.0.16 \
@@ -90,3 +93,6 @@ RUN pip install --upgrade pip
 
 COPY requirements.txt /root/.
 RUN pip install -r /root/requirements.txt
+
+WORKDIR /usr/src/awsmgr
+RUN mkdir -p /usr/src/awsmgr

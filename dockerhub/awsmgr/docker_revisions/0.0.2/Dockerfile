@@ -86,7 +86,8 @@ RUN apk update \
     nginx \
     rsyslog \
     vim \
-    ttyd
+    ttyd \
+    gcompat
 
 # Python updates
 RUN pip install --upgrade pip

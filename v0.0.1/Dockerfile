@@ -2,6 +2,8 @@ ARG VICE_PARENT_IMAGE=hagan/pynode
 ARG VICE_PARENT_TAG=alpine3.19v2
 FROM ${VICE_PARENT_IMAGE}:${VICE_PARENT_TAG}
 
+ENV CCACHE_DIR=/ccache
+
 ARG DOCKER_NAME='viceawsmgr'
 ARG DOCKER_TAG='v0.0.1'
 ARG DOCKER_IMAGE=${DOCKER_NAME}:${DOCKER_TAG}
@@ -19,6 +21,39 @@ ENV NODE_SOCK=${NODE_SOCK}
 RUN echo "DOCKER_NAME=${DOCKER_NAME}" > .env
 RUN echo "DOCKER_TAG=${DOCKER_TAG}" >> .env
 RUN echo "DOCKER_IMAGE=${DOCKER_IMAGE}" >> .env
+
+## SETUP NVM/NODE
+RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION 21.6.1
+
+RUN mkdir -p $NVM_DIR \
+  && apk update \
+  && apk add -U \
+    ccache \
+    curl \
+    bash \
+    ca-certificates \
+    openssl \
+    ncurses \
+    coreutils \
+    python3 \
+    make \
+    gcc \
+    g++ \
+    libgcc \
+    linux-headers \
+    grep \
+    util-linux \
+    binutils \
+    findutils \
+  && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash \
+  && . $NVM_DIR/nvm.sh
+RUN --mount=type=cache,target=/ccache . $NVM_DIR/nvm.sh \
+  && nvm install $NODE_VERSION \
+  && nvm alias default $NODE_VERSION \
+  && nvm use default
+
 
 # Save environment vars for our application
 RUN echo "STATIC_ROOT=${STATIC_ROOT}" >> .env
@@ -63,13 +98,24 @@ RUN mkdir /tmp/npms
 # Install Python Amazon Manager pacakge
 COPY ./src/flask/dist/ /tmp/wheels/.
 # Dependency cache mount to /root/.cache/pip!!
-RUN --mount=type=cache,target=/root/.cache/pip wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) && echo "wheel_file = $wheel_file" && pip install $wheel_file
+RUN --mount=type=cache,target=/root/.cache/pip wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
+  && echo "wheel_file = $wheel_file" \
+  && pip install $wheel_file
 
 # Install NodeJS/NextJS Amazon package (eventually i'd like this to work from a package!)
-# COPY ${DOCKER_DIR}/dist/ui/ /tmp/npms/.
-# RUN cd /usr/src/awsmgr && npm_pkg=$(ls -tp /tmp/npms/*.tgz | head -n1) && echo "npm_pkg = $npm_pkg" && npm install -g $npm_pkg
-# Install dependencies for the npm package
-# RUN cd /usr/src/awsmgr && npm_pkg_dir=$(npm list -g awsmgr --parseable) && echo "npm_kg_dir = $npm_pkg_dir" && cd $npm_pkg_dir && npm install -g
+# COPY ./src/ui/dist/ /tmp/npms/.
+# RUN cd /usr/src/awsmgr \
+#   && npm_pkg=$(ls -tp /tmp/npms/*.tgz | head -n1) \
+#   && echo "npm_pkg = $npm_pkg" \
+#   && . $NVM_DIR/nvm.sh \
+#   && npm install -g $npm_pkg
+# # Install dependencies for the npm package
+# RUN cd /usr/src/awsmgr \
+#   && npm_pkg_dir=$(. $NVM_DIR/nvm.sh && npm list -g awsmgr --parseable) \
+#   && echo "npm_kg_dir = $npm_pkg_dir" \
+#   && cd $npm_pkg_dir \
+#   && . $NVM_DIR/nvm.sh \
+#   && npm install -g
 
 ## copy NextJS project from source
 COPY ./src/ui/ /usr/src/awsmgr-ui/
@@ -78,17 +124,17 @@ RUN find /usr/src/awsmgr-ui -type f -executable -exec chmod 0775 {} \; && \
   find /usr/src/awsmgr-ui -type d -exec chmod 0775 {} \; && \
   chown -R node:node /usr/src/awsmgr-ui
 
-## we might not need to remove the node_modules, but seems to have issues with arm vs amd.
+# ## we might not need to remove the node_modules, but seems to have issues with arm vs amd.
 RUN test -d /usr/src/awsmgr-ui/node_modules && rm -rvf /usr/src/awsmgr-ui/node_modules && \
   test -f /usr/src/awsmgr-ui/package-log.json && rm /usr/src/awsmgr-ui/package-log.json && \
   test -f /usr/src/awsmgr-ui/.env.local && rm /usr/src/awsmgr-ui/.env.local || true
 
 USER node
 RUN --mount=type=cache,target=/root/.npm \
-  cd /usr/src/awsmgr-ui && \
-  PATH=/usr/local/bin:/usr/local/bin:/usr/bin:/bin && \
-  npm rebuild \
-  npm install
+  cd /usr/src/awsmgr-ui \
+  && PATH=/usr/local/bin:/usr/local/bin:/usr/bin:/bin \
+  && . $NVM_DIR/nvm.sh \
+  && npm install
 USER root
 
 # Create our lower privileged user for ttyd...

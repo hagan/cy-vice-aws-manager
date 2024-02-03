@@ -68,30 +68,7 @@ COPY ${VICE_DIR}/etc/nginx/sites-available/default /etc/nginx/sites-available/.
 # ## let nginx read/write to the gunicorn socket
 # RUN addgroup nginx gunicorn
 
-RUN groupadd --gid 500 gunicorn && \
-  useradd gunicorn \
-  --system \
-  --comment "" \
-  --uid 500 \
-  --gid 500 \
-  --shell /usr/bin/bash \
-  --create-home --home-dir /home/gunicorn && \
-  usermod -aG gunicorn www-data && \
-  mkdir -p /run/gunicorn-awsmgr && \
-  chmod 0755 /run/gunicorn-awsmgr
 COPY ${VICE_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.py
-
-RUN groupadd --gid 501 node && \
-  useradd node \
-  --system \
-  --comment "" \
-  --uid 501 \
-  --gid 501 \
-  --shell /usr/bin/bash \
-  --create-home --home-dir /home/node && \
-  usermod -aG node www-data && \
-  mkdir -p /run/node-awsmgr && \
-  chmod 0755 /run/node-awsmgr
 
 # Create projects directories
 RUN mkdir /tmp/wheels

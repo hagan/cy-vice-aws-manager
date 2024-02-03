@@ -17,19 +17,12 @@ USER root
 RUN apt-get update -y && \
   apt-get install -y --no-install-recommends \
     ccache \
-    curl \
-    wget \
-    bash \
-    ca-certificates \
-    openssl \
     ncurses-base \
-    coreutils \
     # re2 \
     # re2-dev \
     # python3 \
     make \
     cmake \
-    git \
     gcc \
     g++ \
     libjson-c-dev \
@@ -41,16 +34,34 @@ RUN apt-get update -y && \
     # gcompat
     linux-headers-amd64 \
     linux-headers-cloud-amd64 \
-    grep \
-    util-linux \
-    binutils \
-    findutils \
-    supervisor \
-    rsyslog \
-    nginx \
-    vim
+    binutils
 
+# Create gunicorn user for Django/Flask api endpoints
+# RUN adduser gunicorn \
+#   --disabled-password --gecos "Gunicorn User" \
+#   --system \
+#   --group \
+#   --uid 500 \
+#   --shell /usr/bin/bash \
+#   --home /home/gunicorn && \
+#   usermod -aG gunicorn www-data && \
+#   mkdir -p /run/gunicorn-awsmgr && \
+#   chmod 0755 /run/gunicorn-awsmgr
 
+# # Create node user for React/NextJS express server
+# RUN adduser node \
+#   --disabled-password --gecos "Node User" \
+#   --system \
+#   --group \
+#   --uid 501 \
+#   --shell /usr/bin/bash \
+#   --home /home/node && \
+#   usermod -aG node www-data && \
+#   mkdir -p /run/node-awsmgr && \
+#   chmod 0755 /run/node-awsmgr
+
+# # ## Prefetch our libraries for our NextJS application
+# USER node
 # RUN npm install -g \
 #   @fontsource/inter@5.0.16 \
 #   @next/eslint-plugin-next@14.1.0 \
@@ -96,6 +107,7 @@ RUN apt-get update -y && \
 #   typescript@5.3.3 \
 #   sharp@0.32.6
 
+USER root
 # RUN chown -R node:node /usr/local/lib/node_modules
 # RUN chmod -R 0775 /usr/local/lib/node_modules
 
@@ -105,9 +117,9 @@ RUN apt-get update -y && \
 # WORKS TO HERE
 
 # Python updates
-RUN pip install --upgrade pip
-COPY requirements.txt /root/.
-RUN pip install -r /root/requirements.txt
+# RUN pip install --upgrade pip
+# COPY requirements.txt /root/.
+# RUN pip install -r /root/requirements.txt
 
 RUN mkdir -p /usr/src/awsmgr
 WORKDIR /usr/src/awsmgr

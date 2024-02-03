@@ -1,6 +1,8 @@
 
 ## THIS IS SOURCED FROM : https://github.com/pulumi/pulumi-docker-containers/blob/main/docker/pulumi/Dockerfile
 
+## used to build an executable "pulumi".. This needs refactoring, >1.5Gb added to image
+
 ARG PULUMI_PARENT_IMAGE=debian
 ARG PULUMI_PARENT_TAG=bookworm
 

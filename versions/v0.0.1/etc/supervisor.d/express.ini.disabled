@@ -1,0 +1,7 @@
+[program:express]
+command = /bin/su - node -c 'cd /usr/src/awsmgr-ui && npm run start-server'
+directory = /usr/src/awsmgr-ui
+autostart = true
+autorestart = true
+stderr_logfile = /var/log/express.err.log
+stdout_logfile = /var/log/express.out.log

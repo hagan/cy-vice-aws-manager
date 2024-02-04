@@ -26,9 +26,11 @@ for k,v in os.environ.items():
         print(f"GUNICORN {key} = {v}")
         locals()[key] = v
 
+## set write permissions to socket (group == www-data/nginx user)
+umask = 0o002
 if not 'bind' in locals():
     # bind = "0.0.0.0:8080"
-    bind = "unix:/run/nginx/gunicorn.sock"
+    bind = "unix:/run/gunicorn/flask-awsmgr.sock"
 
 #spew = False if not 'spew' in locals() else (spew in ['true', 'True']))
 

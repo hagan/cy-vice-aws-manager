@@ -84,18 +84,8 @@ RUN curl -fsSL https://deb.nodesource.com/setup_21.x | bash - && \
 #   curl -sS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft-archive-keyring.gpg && \
 #   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/microsoft.list && \
   apt-get update -y && \
-  apt-get install -y \
-## DONT CARE NEVER USING AZURE VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
-# Pin azure-cli to 2.33.1 as workaround for https://github.com/pulumi/pulumi-docker-containers/issues/106
-#  "azure-cli=2.33.1-1~bullseye"
-#  azure-cli ???
-#  docker-ce \
-#   google-cloud-sdk \
-#   google-cloud-sdk-gke-gcloud-auth-plugin \
-#   kubectl \
-#   nodejs \
-## DONT CARE ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  nodejs && \
-  yarn && \
-  # Clean up the lists work
+  apt-get install -y nodejs yarn && \
   rm -rf /var/lib/apt/lists/*
+
+## NOTE: removed the following packages from this: azure-cli=2.33.1-1~bullseye, docker-ce, google-cloud-sdk, 
+## google-cloud-sdk-gke-gcloud-auth-plugin, & kubectl

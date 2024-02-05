@@ -63,14 +63,14 @@ RUN adduser node \
   --uid 501 \
   --shell /usr/bin/bash \
   --home /home/node && \
-  usermod -aG node www-data && \
+  usermod -aG www-data node && \
   mkdir -p /run/node-awsmgr && \
   chmod 0755 /run/node-awsmgr
 
 # setup run/node
 RUN mkdir /run/node && \
-  chown node:node /run/gunicorn && \
-  chmod 0775 /run/gunicorn
+  chown node:node /run/node && \
+  chmod 0775 /run/node
 
 # ## Prefetch our libraries for our NextJS application
 RUN npm install -g \

@@ -1,6 +1,9 @@
 # dockerhub images
 
-This directory (dockerhub) contains two docker images that can be built and uploaded to hub.docker.io to speed up compile time
+This directory (dockerhub) contains three docker folders (pynode, pulumi & awsmgr). These 3 imagesare built
+and uploaded into hub.docker.io to speed up compile time of the final image (vice).
+
+Best to use the Makefile from the parent cy-aws-manager repository to build everything.
 
 Use this to generate a base image to upload into docker hub to generate project images from.
 i.e.

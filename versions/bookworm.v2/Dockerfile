@@ -70,23 +70,41 @@ COPY ${VICE_DIR}/etc/nginx/sites-available/default /etc/nginx/sites-available/.
 COPY ${VICE_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.py
 
 # Create projects directories
-RUN mkdir /tmp/wheels
-RUN mkdir /tmp/npms
+RUN mkdir /tmp/wheels \
+  && chown gunicorn:gunicorn /tmp/wheels
+RUN mkdir /tmp/npms \
+  && chown node:node /tmp/npms
 # RUN mkdir /usr/local/src/awsmgr
 
 # Install Python Amazon Manager pacakge
 RUN mkdir /home/gunicorn/bin/ && chown gunicorn:gunicorn /home/gunicorn/bin/
-COPY ${VICE_DIR}/update-wheel.sh /home/gunicorn/bin/.
+
 COPY ./src/flask/dist/ /tmp/wheels/.
 # Dependency cache mount to /root/.cache/pip!!
 USER gunicorn
+COPY ${VICE_DIR}/home/gunicorn/ /home/gunicorn/.
+COPY ${VICE_DIR}/update-wheel.sh /home/gunicorn/bin/.
 RUN --mount=type=cache,target=/root/.cache/pip wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
   && . /home/gunicorn/envs/flask-env/bin/activate \ 
   && pip install $wheel_file
 
 # Install NodeJS/NextJS Amazon package (eventually i'd like this to work from a package!)
-# COPY ./src/ui/dist/ /tmp/npms/.
+COPY --chown=node:node ./src/ui/dist/ /tmp/npms/.
+COPY --chown=node:node ${VICE_DIR}/update-npm.sh /home/node/bin/.
+USER node
+COPY ${VICE_DIR}/home/node/ /home/node/.
+RUN echo "NODE_SOCK=$NODE_SOCK" > /home/node/.env.local
+RUN --mount=type=cache,target=/root/.npm \
+  cd /home/node \
+  && ./bin/update-npm.sh
+
+## Must "bootstrap" NextJS/ExpressJS apps with yarn
+RUN --mount=type=cache,target=/root/.npm \
+  cd /home/node/node_modules/awsmgr && \
+  export PATH=$HOME/node_modules/.bin:$PATH \
+  && yarn install
+
 # RUN cd /usr/local/src/awsmgr \
 #   && npm_pkg=$(ls -tp /tmp/npms/*.tgz | head -n1) \
 #   && echo "npm_pkg = $npm_pkg" \
@@ -104,19 +122,22 @@ RUN --mount=type=cache,target=/root/.cache/pip wheel_file=$(ls -tp /tmp/wheels/*
 # RUN mkdir -p /usr/local/src/awsmgr-ui && \
 #   chown www-data:www-data /usr/local/src/awsmgr-ui & \
 #   chmod 0775 /usr/local/src/awsmgr-ui
-COPY --chown=node:node ./src/ui/ /usr/local/src/awsmgr-ui/
+### vv WORKING
+# COPY --chown=node:node ./src/ui/ /usr/local/src/awsmgr-ui/
+### ^^ WORKING
 # RUN find /usr/local/src/awsmgr-ui -type d -exec chmod g+w {} + && \
 #   find /usr/local/src/awsmgr-ui -type f -executable -exec chmod g+w {} + && \
 #   find /usr/local/src/awsmgr-ui -type f ! -executable -exec chmod g+w {} +
-USER node
-RUN echo "NODE_SOCK=$NODE_SOCK" > /usr/local/src/awsmgr-ui/.env.local \
-  && mkdir /home/node/bin
-COPY ${VICE_DIR}/update-npm.sh /home/node/bin/.
-RUN --mount=type=cache,target=/root/.npm \
-  cd /usr/local/src/awsmgr-ui \
-  && npm install
-USER root
-
+### vv WORKING
+# USER node
+# RUN echo "NODE_SOCK=$NODE_SOCK" > /usr/local/src/awsmgr-ui/.env.local \
+#   && mkdir /home/node/bin
+# COPY ${VICE_DIR}/update-npm.sh /home/node/bin/.
+# RUN --mount=type=cache,target=/root/.npm \
+#   cd /usr/local/src/awsmgr-ui \
+#   && npm install
+# USER root
+### ^^ WORKING
 ## we might not need to remove the node_modules, but seems to have issues with arm vs amd.
 # RUN test -d /usr/local/src/awsmgr-ui/node_modules && rm -rvf /usr/local/src/awsmgr-ui/node_modules && \
 #   test -f /usr/local/src/awsmgr-ui/package-log.json && rm /usr/local/src/awsmgr-ui/package-log.json && \
@@ -128,7 +149,7 @@ USER root
 #   && PATH=/usr/local/bin:/usr/local/bin:/usr/bin:/bin \
 #   # && . $NVM_DIR/nvm.sh \
 #   && npm install
-# USER root
+USER root
 
 # Create our lower privileged user for ttyd...
 RUN adduser cyverse \

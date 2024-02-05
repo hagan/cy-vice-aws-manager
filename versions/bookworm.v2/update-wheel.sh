@@ -2,7 +2,12 @@
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "$0")" && pwd)
 
-FLASK_VIRTUAL_ENV='/home/gunicorn/envs/flask-env/bin/activate'
+if [ $(whoami) != 'node' ]; then
+  echo "ERROR: must run awsmgr-start as 'node' user. Currently running as: $(whoami)"
+  exit 1
+fi
+
+FLASK_VIRTUAL_ENV="$HOME/envs/flask-env/bin/activate"
 LATEST_WHL_APP=$(ls -lhtp /tmp/wheels/*.whl | head -n1 | awk '{print $9}')
 
 if [ ! -f $LATEST_WHL_APP ]; then

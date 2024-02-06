@@ -11,6 +11,7 @@ test
 .gitignore
 
 node_modules
+.next/cache
 
 pids
 *.pid

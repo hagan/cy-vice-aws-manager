@@ -2,8 +2,6 @@ ARG VICE_PARENT_IMAGE=hagan/pynode
 ARG VICE_PARENT_TAG=bookworm.v5
 FROM ${VICE_PARENT_IMAGE}:${VICE_PARENT_TAG}
 
-ENV CCACHE_DIR=/ccache
-
 ARG VICE_NAME='viceawsmgr'
 ARG VICE_VERSION='v0.0.1'
 ARG DOCKER_IMAGE=${VICE_NAME}:${VICE_VERSION}
@@ -15,95 +13,74 @@ ARG VICE_DIR="./src/vice/versions/${VICE_VERSION}"
 ARG STATIC_ROOT='/var/www/static'
 
 ARG NODE_SOCK='/run/node/express-nextjs.socket'
-ENV NODE_SOCK=${NODE_SOCK}
+ENV NODE_SOCK=${NODE_SOCK} \
+  CCACHE_DIR=/ccache \
+  YARN_CACHE_FOLDER=/home/node/.yarn/cache \
+  PIP_CACHE_DIR=/home/gunicorn/.cache/pip \
+  NODE_VERSION=21.6.1 \
+  NPM_CONFIG_PREFIX="/home/node/.local" \
+  SKIP_YARN_INSTALL=1
 
-# save vars to our environment
-# RUN echo "DOCKER_NAME=${VICE_NAME}" > .env
-# RUN echo "DOCKER_TAG=${VICE_VERSION}" >> .env
-# RUN echo "DOCKER_IMAGE=${DOCKER_IMAGE}" >> .env
-
-## SETUP NVM/NODE
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
-# ENV NVM_DIR /usr/local/nvm
-ENV NODE_VERSION 21.6.1
-
-    # \
-  # && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash \
-#   && . $NVM_DIR/nvm.sh
-# RUN --mount=type=cache,target=/ccache . $NVM_DIR/nvm.sh \
-#   && nvm install $NODE_VERSION \
-#   && nvm alias default $NODE_VERSION \
-#   && nvm use default
-
-# Save environment vars for our application
-RUN echo "STATIC_ROOT=${STATIC_ROOT}" >> .env
 # COPY OUR entrypoint.sh script
 COPY ${VICE_DIR}/entrypoint.sh /usr/local/bin/
-RUN chmod u+x,g+x /usr/local/bin/entrypoint.sh \
-  && ln -s /usr/local/bin/entrypoint.sh / # backwards compat
 
 # supervisord
 COPY ${VICE_DIR}/etc/supervisord.conf /etc/supervisord.conf
 COPY ${VICE_DIR}/etc/supervisor.d/ /etc/supervisor.d/
-RUN mkdir -p /var/log/supervisor
-
 
 # Nginx stuff
-# RUN chown nginx:nginx /run/nginx && chmod 0775 /run/nginx
-## !!!!! NEED TO FIX THIS SO OUR SOCKETS CANT WRITE node<->nginx..
-## Fix: Move the socket to a better place like /run/node-awsmgr/express.sock
-
 COPY ${VICE_DIR}/etc/nginx/proxy_params /etc/nginx/proxy_params
 COPY ${VICE_DIR}/etc/nginx/sites-available/default /etc/nginx/sites-available/.
 
-# # Gunicorn stuff
-# RUN addgroup -g 1001 gunicorn \
-#     && adduser -u 1001 -G gunicorn -s /bin/sh -D gunicorn
-# COPY ${VICE_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.py
-# # Create directory for gunicorn!
-# RUN mkdir -p /run/gunicorn-awsmgr
-# RUN chown gunicorn:gunicorn /run/gunicorn-awsmgr
-# RUN chmod 0775 /run/gunicorn-awsmgr
-# ## let nginx read/write to the gunicorn socket
-# RUN addgroup nginx gunicorn
-
 COPY ${VICE_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.py
 
-# Create projects directories
-RUN mkdir /tmp/wheels \
-  && chown gunicorn:gunicorn /tmp/wheels
-RUN mkdir /tmp/npms \
-  && chown node:node /tmp/npms
-# RUN mkdir /usr/local/src/awsmgr
+RUN echo "STATIC_ROOT=${STATIC_ROOT}" >> .env \
+  && rm /bin/sh \
+  && ln -s /bin/bash /bin/sh \
+  && chmod u+x,g+x /usr/local/bin/entrypoint.sh \
+  && ln -s /usr/local/bin/entrypoint.sh / \
+  && [ -d /var/log/supervisor ] || mkdir -p /var/log/supervisor \
+  && [ -d /tmp/wheels ] || mkdir /tmp/wheels \
+  && chown gunicorn:gunicorn /tmp/wheels \
+  && [ -d /tmp/npms ] || mkdir /tmp/npms \
+  && chown node:node /tmp/npms \
+  && [ -d /home/gunicorn/bin ] || mkdir /home/gunicorn/bin \
+  && chown gunicorn:gunicorn /home/gunicorn/bin
 
-# Install Python Amazon Manager pacakge
-RUN mkdir /home/gunicorn/bin/ && chown gunicorn:gunicorn /home/gunicorn/bin/
+COPY --chown=gunicorn:gunicorn ./src/flask/dist/ /tmp/wheels/.
+COPY --chown=node:node ./src/ui/dist/ /tmp/npms/.
+COPY --chown=node:node ${VICE_DIR}/update-npm.sh /home/node/bin/.
 
-COPY ./src/flask/dist/ /tmp/wheels/.
 # Dependency cache mount to /root/.cache/pip!!
 USER gunicorn
 COPY ${VICE_DIR}/home/gunicorn/ /home/gunicorn/.
 COPY ${VICE_DIR}/update-wheel.sh /home/gunicorn/bin/.
-RUN --mount=type=cache,target=/root/.cache/pip wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
+
+RUN --mount=type=cache,target=${PIP_CACHE_DIR},uid=500,gid=500,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
   && . /home/gunicorn/envs/flask-env/bin/activate \ 
-  && pip install $wheel_file
+  && pip install --cache-dir=${PIP_CACHE_DIR} $wheel_file
 
-# Install NodeJS/NextJS Amazon package (eventually i'd like this to work from a package!)
-COPY --chown=node:node ./src/ui/dist/ /tmp/npms/.
-COPY --chown=node:node ${VICE_DIR}/update-npm.sh /home/node/bin/.
 USER node
+
 COPY ${VICE_DIR}/home/node/ /home/node/.
-RUN echo "NODE_SOCK=$NODE_SOCK" > /home/node/.env.local
-RUN --mount=type=cache,target=/root/.npm \
-  cd /home/node \
+## Need to map our npm global -> ~/.local/bin & ~/.local/lib etc...
+
+## tell the update-npm.sh to skill "yarn install" step / moved into awsmgr step
+RUN --mount=type=cache,target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755 \
+  echo "NODE_SOCK=$NODE_SOCK" > /home/node/.env.local \
+  && [ -d /home/node/.npm ] \
+  || mkdir /home/node/.npm \
+  && [ -d $NPM_CONFIG_PREFIX ] \
+  || mkdir -p $NPM_CONFIG_PREFIX \
+  && cd /home/node \
   && ./bin/update-npm.sh
 
 ## Must "bootstrap" NextJS/ExpressJS apps with yarn
-RUN --mount=type=cache,target=/root/.npm \
-  cd /home/node/node_modules/awsmgr && \
-  export PATH=$HOME/node_modules/.bin:$PATH \
-  && yarn install
+# RUN --mount=type=cache,target=/root/.npm \
+#   cd /home/node/node_modules/awsmgr && \
+#   export PATH=$HOME/node_modules/.bin:$PATH \
+#   && yarn install
 
 # RUN cd /usr/local/src/awsmgr \
 #   && npm_pkg=$(ls -tp /tmp/npms/*.tgz | head -n1) \

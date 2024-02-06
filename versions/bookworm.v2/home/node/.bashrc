@@ -111,3 +111,6 @@ if ! shopt -oq posix; then
     . /etc/bash_completion
   fi
 fi
+
+# remap our global from /usr/local -> $HOME/.local
+export NPM_CONFIG_PREFIX=$HOME/.local

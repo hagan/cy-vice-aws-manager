@@ -53,12 +53,15 @@ RUN apt-get update && \
 
 # Install MiniConda and Tini
 ENV TZ America/Phoenix
-ENV LANG=C.UTF-8 
-ENV LC_ALL "en_US.UTF-8"
-# Setup timezone and locales
+# Setup timezone
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
-    echo $TZ > /etc/timezone && \
+    echo $TZ > /etc/timezone
+# Setup locales
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
     locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8  
+ENV LANGUAGE en_US:en  
+ENV LC_ALL en_US.UTF-8
 
 # install ttyd
 RUN curl -L "https://github.com/tsl0922/ttyd/releases/download/1.6.3/ttyd.x86_64" > ttyd && \

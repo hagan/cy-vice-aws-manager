@@ -8,6 +8,10 @@ ARG AWSMGR_PARENT_TAG=alpine3-19v2
 
 FROM ${AWSMGR_PARENT_IMAGE}:${AWSMGR_PARENT_TAG}
 
+## Docker buildx caching directories for yarn and pip
+ENV YARN_CACHE_FOLDER=/home/node/.yarn/cache
+ENV PIP_CACHE_DIR=/home/gunicorn/.cache/pip
+
 RUN mkdir -p /usr/local/lib/node_modules
 # RUN chown -R node:node /usr/local/lib/node_modules
 # RUN chmod -R 0775 /usr/local/lib/node_modules
@@ -73,50 +77,59 @@ RUN mkdir /run/node && \
   chmod 0775 /run/node
 
 # ## Prefetch our libraries for our NextJS application
-RUN npm install -g \
-  @fontsource/inter@5.0.16 \
-  @next/eslint-plugin-next@14.1.0 \
-  @storybook/addon-essentials@7.6.11 \
-  @storybook/addon-interactions@7.6.11 \
-  @storybook/addon-links@7.6.11 \
-  @storybook/blocks@7.6.11 \
-  @storybook/nextjs@7.6.11 \
-  @storybook/react@7.6.11 \
-  @storybook/test@7.6.11 \
-  @types/jest@29.5.11 \
-  @types/jsonwebtoken@9.0.5 \
-  @types/node@20.11.10 \
-  @types/react-dom@18.2.18 \
-  @types/react@18.2.48 \
-  @typescript-eslint/eslint-plugin@6.20.0 \
-  @typescript-eslint/parser@6.20.0 \
-  @vercel/ncc@0.38.1 \
-  autoprefixer@10.4.17 \
-  bootstrap@5.3.2 \
-  dotenv@16.4.1 \
-  eslint-config-next@14.1.0 \
-  eslint-plugin-next@0.0.0 \
-  eslint-plugin-react@7.33.2 \
-  eslint-plugin-storybook@0.6.15 \
-  eslint@8.56.0 \
-  express@4.18.2 \
-  husky@9.0.7 \
-  jest@29.7.0 \
-  jsonwebtoken@9.0.2 \
-  next-cli@1.0.0 \
-  next@14.1.0 \
-  nodemon@3.0.3 \
-  numeral@2.0.6 \
-  prettier@3.2.4 \
-  pretty-quick@4.0.0 \
-  react-bootstrap@2.10.0 \
-  react-dom@18.2.0 \
-  react@18.2.0 \
-  storybook@7.6.11 \
-  ts-jest@29.1.2 \
-  ts-node@10.9.2 \
-  typescript@5.3.3 \
-  sharp@0.32.6
+COPY ./yarn.lock /home/node/.
+COPY ./package.json /home/node/.
+RUN chown node:node /home/node/yarn.lock \
+  && chown node:node /home/node/package.json \
+  && mkdir -p /home/node/.yarn/cache \
+  && chown -R node:node /home/node/.yarn
+USER node
+RUN --mount=type=cache,target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755 \
+  cd /home/node && [ -f yarn.lock ] && [ -f package.json ] \
+  && SKIP_PREPARE=1 yarn install --cache-folder=${YARN_CACHE_FOLDER} --frozen-lockfile
+  # @fontsource/inter@5.0.16 \
+  # @next/eslint-plugin-next@14.1.0 \
+  # @storybook/addon-essentials@7.6.11 \
+  # @storybook/addon-interactions@7.6.11 \
+  # @storybook/addon-links@7.6.11 \
+  # @storybook/blocks@7.6.11 \
+  # @storybook/nextjs@7.6.11 \
+  # @storybook/react@7.6.11 \
+  # @storybook/test@7.6.11 \
+  # @types/jest@29.5.11 \
+  # @types/jsonwebtoken@9.0.5 \
+  # @types/node@20.11.10 \
+  # @types/react-dom@18.2.18 \
+  # @types/react@18.2.48 \
+  # @typescript-eslint/eslint-plugin@6.20.0 \
+  # @typescript-eslint/parser@6.20.0 \
+  # @vercel/ncc@0.38.1 \
+  # autoprefixer@10.4.17 \
+  # bootstrap@5.3.2 \
+  # dotenv@16.4.1 \
+  # eslint-config-next@14.1.0 \
+  # eslint-plugin-next@0.0.0 \
+  # eslint-plugin-react@7.33.2 \
+  # eslint-plugin-storybook@0.6.15 \
+  # eslint@8.56.0 \
+  # express@4.18.2 \
+  # husky@9.0.7 \
+  # jest@29.7.0 \
+  # jsonwebtoken@9.0.2 \
+  # next-cli@1.0.0 \
+  # next@14.1.0 \
+  # nodemon@3.0.3 \
+  # numeral@2.0.6 \
+  # prettier@3.2.4 \
+  # pretty-quick@4.0.0 \
+  # react-bootstrap@2.10.0 \
+  # react-dom@18.2.0 \
+  # react@18.2.0 \
+  # storybook@7.6.11 \
+  # ts-jest@29.1.2 \
+  # ts-node@10.9.2 \
+  # typescript@5.3.3 \
+  # sharp@0.32.6
 
 # RUN chown -R node:node /usr/local/lib/node_modules
 # RUN chmod -R 0775 /usr/local/lib/node_modules
@@ -125,16 +138,16 @@ RUN npm install -g \
 # which is required by our flask app.
 # libffi-dev already installed
 # WORKS TO HERE
-
+USER root
 # Python updates
-RUN pip install --upgrade pip
+RUN pip install --root-user-action=ignore --upgrade pip
 COPY --chown=gunicorn:gunicorn ./requirements.txt /home/gunicorn/.
 USER gunicorn
-RUN cd /home/gunicorn \
- && python -m venv envs/flask-env \
- && . /home/gunicorn/envs/flask-env/bin/activate \
- && pip install --upgrade pip \
- && pip install -r /home/gunicorn/requirements.txt
+RUN --mount=type=cache,target=${PIP_CACHE_DIR},uid=500,gid=500,mode=0755 \
+  cd /home/gunicorn \
+  && python -m venv envs/flask-env \
+  && . /home/gunicorn/envs/flask-env/bin/activate \
+  && pip install -r /home/gunicorn/requirements.txt
 USER root
 RUN mkdir -p /usr/src/awsmgr && \
   chown gunicorn:gunicorn /usr/src/awsmgr

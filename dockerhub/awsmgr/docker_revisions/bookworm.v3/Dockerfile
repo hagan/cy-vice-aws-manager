@@ -40,7 +40,8 @@ RUN apt-get update -y && \
     # gcompat
     linux-headers-amd64 \
     linux-headers-cloud-amd64 \
-    binutils
+    binutils \
+    acl
 
 # Create gunicorn user for Django/Flask api endpoints
 RUN adduser gunicorn \
@@ -84,6 +85,7 @@ RUN chown node:node /home/node/yarn.lock \
   && mkdir -p /home/node/.yarn/cache \
   && chown -R node:node /home/node/.yarn
 USER node
+WORKDIR /home/node/
 RUN --mount=type=cache,target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755 \
   cd /home/node && [ -f yarn.lock ] && [ -f package.json ] \
   && SKIP_PREPARE=1 yarn install --cache-folder=${YARN_CACHE_FOLDER} --frozen-lockfile
@@ -143,6 +145,7 @@ USER root
 RUN pip install --root-user-action=ignore --upgrade pip
 COPY --chown=gunicorn:gunicorn ./requirements.txt /home/gunicorn/.
 USER gunicorn
+WORKDIR /home/gunicorn
 RUN --mount=type=cache,target=${PIP_CACHE_DIR},uid=500,gid=500,mode=0755 \
   cd /home/gunicorn \
   && python -m venv envs/flask-env \

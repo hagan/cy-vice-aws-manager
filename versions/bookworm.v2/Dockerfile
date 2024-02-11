@@ -12,7 +12,7 @@ ARG VICE_DIR="./src/vice/versions/${VICE_VERSION}"
 # app specific paths internal to the image
 ARG STATIC_ROOT='/var/www/static'
 
-ARG NODE_SOCK='/run/node/express-nextjs.socket'
+ARG NODE_SOCK='/run/node/sockets/express-nextjs.socket'
 ENV NODE_SOCK=${NODE_SOCK} \
   CCACHE_DIR=/ccache \
   YARN_CACHE_FOLDER=/home/node/.yarn/cache \
@@ -45,7 +45,13 @@ RUN echo "STATIC_ROOT=${STATIC_ROOT}" >> .env \
   && [ -d /tmp/npms ] || mkdir /tmp/npms \
   && chown node:node /tmp/npms \
   && [ -d /home/gunicorn/bin ] || mkdir /home/gunicorn/bin \
-  && chown gunicorn:gunicorn /home/gunicorn/bin
+  && chown gunicorn:gunicorn /home/gunicorn/bin \
+  && mkdir -p /run/node/sockets \
+  && chown node:node /run/node \
+  && chown node:www-data /run/node/sockets \
+  && chmod g+sw,o-rx /run/node/sockets \
+  && setfacl -d -m g:www-data:rwx /run/node/sockets \
+  && setfacl -d -m o::--- /run/node/sockets
 
 COPY --chown=gunicorn:gunicorn ./src/flask/dist/ /tmp/wheels/.
 COPY --chown=node:node ./src/ui/dist/ /tmp/npms/.
@@ -65,7 +71,7 @@ USER node
 
 COPY ${VICE_DIR}/home/node/ /home/node/.
 ## Need to map our npm global -> ~/.local/bin & ~/.local/lib etc...
-
+WORKDIR /home/node
 ## tell the update-npm.sh to skill "yarn install" step / moved into awsmgr step
 RUN --mount=type=cache,target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755 \
   echo "NODE_SOCK=$NODE_SOCK" > /home/node/.env.local \

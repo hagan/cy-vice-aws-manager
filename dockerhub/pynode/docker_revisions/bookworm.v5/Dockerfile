@@ -48,6 +48,7 @@ RUN apt-get update && \
     grep \
     neovim \
     tmux \
+    jq \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

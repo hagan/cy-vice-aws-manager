@@ -51,7 +51,7 @@ server {
     # NodeJS
     location / {
         include proxy_params;
-        proxy_pass http://unix:/run/node/express-nextjs.socket;
+        proxy_pass http://unix:/run/node/sockets/express-nextjs.socket;
         proxy_read_timeout 90s;
         proxy_redirect off;
 

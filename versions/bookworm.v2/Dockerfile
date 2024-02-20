@@ -8,6 +8,8 @@ ARG DOCKER_IMAGE=${VICE_NAME}:${VICE_VERSION}
 
 # relative path to our Dockerfile
 ARG VICE_DIR="./src/vice/versions/${VICE_VERSION}"
+ARG FLASK_DIR="./src/flask"
+ARG UI_DIR="./src/ui"
 
 # app specific paths internal to the image
 ARG STATIC_ROOT='/var/www/static'
@@ -40,9 +42,13 @@ RUN echo "STATIC_ROOT=${STATIC_ROOT}" >> .env \
   && chmod u+x,g+x /usr/local/bin/entrypoint.sh \
   && ln -s /usr/local/bin/entrypoint.sh / \
   && [ -d /var/log/supervisor ] || mkdir -p /var/log/supervisor \
+  && [ -d /mnt/dist/wheels ] || mkdir -p /mnt/dist/wheels \
   && [ -d /tmp/wheels ] || mkdir /tmp/wheels \
+  && chown gunicorn:gunicorn /mnt/dist/wheels \
   && chown gunicorn:gunicorn /tmp/wheels \
+  && [ -d /mnt/dist/npms ] || mkdir -p /mnt/dist/npms \
   && [ -d /tmp/npms ] || mkdir /tmp/npms \
+  && chown node:node /mnt/dist/npms \
   && chown node:node /tmp/npms \
   && [ -d /home/gunicorn/bin ] || mkdir /home/gunicorn/bin \
   && chown gunicorn:gunicorn /home/gunicorn/bin \
@@ -53,8 +59,8 @@ RUN echo "STATIC_ROOT=${STATIC_ROOT}" >> .env \
   && setfacl -d -m g:www-data:rwx /run/node/sockets \
   && setfacl -d -m o::--- /run/node/sockets
 
-COPY --chown=gunicorn:gunicorn ./src/flask/dist/ /tmp/wheels/.
-COPY --chown=node:node ./src/ui/dist/ /tmp/npms/.
+COPY --chown=gunicorn:gunicorn ${FLASK_DIR}/dist/ /tmp/wheels/.
+COPY --chown=node:node ${UI_DIR}/dist/ /tmp/npms/.
 COPY --chown=node:node ${VICE_DIR}/update-npm.sh /home/node/bin/.
 
 # Dependency cache mount to /root/.cache/pip!!
@@ -62,6 +68,7 @@ USER gunicorn
 COPY ${VICE_DIR}/home/gunicorn/ /home/gunicorn/.
 COPY ${VICE_DIR}/update-wheel.sh /home/gunicorn/bin/.
 
+# NOTE: /tmp/wheels is used during Dockerfile build, /mnt/dist/wheels while running
 RUN --mount=type=cache,target=${PIP_CACHE_DIR},uid=500,gid=500,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
   && . /home/gunicorn/envs/flask-env/bin/activate \ 
@@ -89,7 +96,7 @@ RUN --mount=type=cache,target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755 \
 #   && yarn install
 
 # RUN cd /usr/local/src/awsmgr \
-#   && npm_pkg=$(ls -tp /tmp/npms/*.tgz | head -n1) \
+#   && npm_pkg=$(ls -tp /mnt/dist/npms/*.tgz | head -n1) \
 #   && echo "npm_pkg = $npm_pkg" \
 #   && . $NVM_DIR/nvm.sh \
 #   && npm install -g $npm_pkg

@@ -40,12 +40,42 @@ if [[ -z "${LATEST_TGZ_APP}" ]]; then
   fi
 fi
 # yarn list --pattern awsmgr --depth=0 --json --non-interactive --no-progress | jq -r '.data.trees[].name'
+AWSMGRCHK=$(\
+    yarn global list \
+      --pattern awsmgr \
+      --depth=0 \
+      --json \
+      --non-interactive \
+      --no-progress \
+      | jq -r 'select(.type == "info") | .data | split("\"")[1]' \
+      | awk -F'@' '{print $1}' \
+    || true\
+  )
+if [ ! -z "${AWSMGRCHK}" ]; then
+  # echo "Issue: awsmgr already exists in image?"
+  # exit 1
+  yarn global remove $LATEST_TGZ_APP
+fi
+
+## BUG: weird in that yarn seems to cache files even when we have them locally?! (cannot do during build step :`(
+[ ${YARNCACHECLEAN-0} -eq 1 ] && { yarn cache clean; echo "~~~~~~~~~~~~~~  CLEARED YARN CACHE ~~~~~~~~~~~~~~"; }
+
 echo "Installing: ${LATEST_TGZ_APP}"
 if [[ -f "${LATEST_TGZ_APP}" ]]; then
   echo "Installing $LATEST_TGZ_APP via yarn..."
-  SKIP_PREPARE=1 yarn add $LATEST_TGZ_APP
+  SKIP_PREPARE=1 yarn global add $LATEST_TGZ_APP
   # Verify it installed
-  AWSMGRCHK=$(yarn list --pattern awsmgr --depth=0 --json --non-interactive --no-progress | jq -r '.data.trees[].name' | grep -o awsmgr)
+  AWSMGRCHK=$(\
+    yarn global list \
+      --pattern awsmgr \
+      --depth=0 \
+      --json \
+      --non-interactive \
+      --no-progress \
+      | jq -r 'select(.type == "info") | .data | split("\"")[1]' \
+      | awk -F'@' '{print $1}' \
+    || true\
+  )
   if [ -z "${AWSMGRCHK}" ]; then
     echo "ERROR: awsmgr did not successfully install."
     exit 1

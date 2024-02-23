@@ -112,5 +112,9 @@ if ! shopt -oq posix; then
   fi
 fi
 
+if [ -f $HOME/.env.local ]; then
+  . $HOME/.env.local
+fi
+
 # remap our global from /usr/local -> $HOME/.local
 export NPM_CONFIG_PREFIX=$HOME/.local

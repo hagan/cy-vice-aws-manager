@@ -1,6 +1,6 @@
 ARG VICE_PARENT_IMAGE=hagan/pynode
 ARG VICE_PARENT_TAG=bookworm.v5
-ARG CACHEBUST=20240221F
+ARG CACHEBUST=20240221J
 FROM ${VICE_PARENT_IMAGE}:${VICE_PARENT_TAG}
 
 ARG VICE_NAME='viceawsmgr'
@@ -20,11 +20,13 @@ ENV SOCKET_FILE=${SOCKET_FILE} \
   CCACHE_DIR=/ccache \
   YARN_CACHE_FOLDER=/home/node/.yarn/cache \
   YARN_CACHE_VER=nodeapp_v1 \
-  PIP_CACHE_DIR=/home/gunicorn/.cache/pip \
+  GUNICORN_PIP_CACHE_DIR=/home/gunicorn/.cache/pip \
+  CYVERSE_PIP_CACHE_DIR=/home/cyverse/.cache/pip \
   NODE_VERSION=21.6.1 \
   NPM_CONFIG_PREFIX="/home/node/.local" \
   SKIP_YARN_INSTALL=1 \
-  DEPLOY_TYPE=production
+  DEPLOY_TYPE=production \
+  CACHEBUST=${CACHEBUST}
 
 # COPY OUR entrypoint.sh script
 COPY ${VICE_DIR}/entrypoint.sh /usr/local/bin/
@@ -43,14 +45,17 @@ COPY ${VICE_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.
 COPY ${VICE_DIR}/etc/rsyslog.conf /etc/.
 COPY ${VICE_DIR}/etc/rsyslog.d/express.conf /etc/rsyslog.d/.
 
-RUN echo "STATIC_ROOT=${STATIC_ROOT}" >> .env \
+RUN \
+  echo "STATIC_ROOT=${STATIC_ROOT}\nCACHEBUST=${CACHEBUST}\n" >> .env \
   && rm /bin/sh \
   && ln -s /bin/bash /bin/sh \
   && chmod u+x,g+x /usr/local/bin/entrypoint.sh \
   && ln -s /usr/local/bin/entrypoint.sh / \
   && [ -d /var/log/supervisor ] || mkdir -p /var/log/supervisor \
+  && [ -d  /var/log/ttyd ] || mkdir -p  /var/log/ttyd \
   && [ -d /mnt/dist/wheels ] || mkdir -p /mnt/dist/wheels \
   && [ -d /tmp/wheels ] || mkdir /tmp/wheels \
+  && chown cyverse:cyverse /var/log/ttyd \
   && chown gunicorn:gunicorn /mnt/dist/wheels \
   && chown gunicorn:gunicorn /tmp/wheels \
   && [ -d /mnt/dist/npms ] || mkdir -p /mnt/dist/npms \
@@ -67,7 +72,24 @@ RUN echo "STATIC_ROOT=${STATIC_ROOT}" >> .env \
   && chmod g+sw,o-rx /run/node/sockets \
   && setfacl -d -m g:www-data:rwx /run/node/sockets \
   && setfacl -d -m o::--- /run/node/sockets \
-  && pip install supervisor
+  && pip install supervisor \
+  && mkdir /ramdisk
+
+RUN mkdir -p /usr/local/var/pulumi \
+  && chown -f gunicorn:gunicorn /usr/local/var \
+  && chmod -f g+sw /usr/local/var \
+  && chown -f gunicorn:gunicorn /usr/local/var/pulumi \
+  && chmod -f g+sw /usr/local/var/pulumi \
+  && setfacl \
+    -m u:cyverse:rwx,g:cyverse:rwx \
+    -m d:cyverse:rwx,g:cyverse:rwx \
+    -m o::r-x \
+    -m d:o::r-x /usr/local/var \
+  && setfacl \
+    -m u:cyverse:rwx,g:cyverse:rwx \
+    -m d:cyverse:rwx,g:cyverse:rwx \
+    -m o::--- \
+    -m d:o::--- /usr/local/var/pulumi
 
 COPY --chown=gunicorn:gunicorn ${FLASK_DIR}/dist/ /tmp/wheels/.
 COPY --chown=node:node ${UI_DIR}/dist/ /tmp/npms/.
@@ -75,16 +97,25 @@ COPY --chown=node:node ${VICE_DIR}/usr/local/bin/update-npm.sh /usr/local/bin/.
 COPY --chown=node:node ${VICE_DIR}/usr/local/bin/cleanup-express-socket.py /usr/local/bin/.
 COPY --chown=gunicorn:gunicorn ${VICE_DIR}/usr/local/bin/update-wheel.sh /usr/local/bin/.
 
+## Install our awsmgr flask app into cyverse
+USER cyverse
+COPY --chown=cyverse:cyverse ${VICE_DIR}/home/cyverse/ /home/cyverse/.
+RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
+  && echo "wheel_file = $wheel_file" \
+  && . /home/cyverse/envs/flask-env/bin/activate \ 
+  && pip install --cache-dir=${CYVERSE_PIP_CACHE_DIR} $wheel_file
+
+## ## Install our awsmgr flask app into gunicorn
 # Dependency cache mount to /root/.cache/pip!!
 USER gunicorn
 COPY ${VICE_DIR}/home/gunicorn/ /home/gunicorn/.
 # COPY ${VICE_DIR}/usr/local/bin/update-wheel.sh /home/gunicorn/bin/.
 
 # NOTE: /tmp/wheels is used during Dockerfile build, /mnt/dist/wheels while running
-RUN --mount=type=cache,target=${PIP_CACHE_DIR},uid=500,gid=500,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
+RUN --mount=type=cache,target=${GUNICORN_PIP_CACHE_DIR},uid=500,gid=500,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
   && . /home/gunicorn/envs/flask-env/bin/activate \ 
-  && pip install --cache-dir=${PIP_CACHE_DIR} $wheel_file
+  && pip install --cache-dir=${GUNICORN_PIP_CACHE_DIR} $wheel_file
 
 USER node
 
@@ -92,7 +123,6 @@ COPY ${VICE_DIR}/home/node/ /home/node/.
 ## Need to map our npm global -> ~/.local/bin & ~/.local/lib etc...
 WORKDIR /home/node
 ## tell the update-npm.sh to skill "yarn install" step / moved into awsmgr step
-## CACHE FUCKUP? 
 ## --mount=type=cache,id=${YARN_CACHE_VER},target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755
 RUN \
   echo -e "SOCKET_FILE='${SOCKET_FILE}'\n" > /home/node/.env.local \
@@ -156,20 +186,7 @@ RUN \
 #   && npm install
 USER root
 
-# Create our lower privileged user for ttyd...
-RUN adduser cyverse \
-  --disabled-password --gecos "Gunicorn User" \
-  --system \
-  --group \
-  --uid 1000 \
-  --shell /usr/bin/bash \
-  --home /home/cyverse && \
-  usermod -aG cyverse www-data && \
-  usermod -aG cyverse node && \
-  usermod -aG cyverse gunicorn && \
-  mkdir -p /usr/local/src/cyverse && \
-  chown cyverse:cyverse /usr/local/src/cyverse && \
-  chmod 0775 /usr/local/src/cyverse
+
 
 
 # END

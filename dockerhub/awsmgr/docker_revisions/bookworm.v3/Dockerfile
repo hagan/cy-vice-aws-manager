@@ -10,147 +10,123 @@ FROM ${AWSMGR_PARENT_IMAGE}:${AWSMGR_PARENT_TAG}
 
 ## Docker buildx caching directories for yarn and pip
 ENV YARN_CACHE_FOLDER=/home/node/.yarn/cache
-ENV PIP_CACHE_DIR=/home/gunicorn/.cache/pip
+ENV GUNICORN_PIP_CACHE_DIR=/home/gunicorn/.cache/pip
+ENV CYVERSE_PIP_CACHE_DIR=/home/cyverse/.cache/pip
 
-RUN mkdir -p /usr/local/lib/node_modules
+USER root
+
+# RUN mkdir -p /usr/local/lib/node_modules
 # RUN chown -R node:node /usr/local/lib/node_modules
 # RUN chmod -R 0775 /usr/local/lib/node_modules
 
 # pre install some packages locally for npm/node
-USER root
-# These packages are taken from the awsmgr package (pre install to save time)
 
+# These packages are taken from the awsmgr package (pre install to save time)
+# Build notes: re2/re2-dev/libffi/libffi-dev & openssl-dev required by grpcio
+# which is required by our flask app.
+# libffi-dev already installed
 RUN apt-get update -y && \
   apt-get install -y --no-install-recommends \
     ccache \
     ncurses-base \
-    # re2 \
-    # re2-dev \
-    # python3 \
-    make \
-    cmake \
-    gcc \
-    g++ \
-    libjson-c-dev \
-    libwebsockets-dev \
-    libgcc-11-dev \
-    # libffi \
-    # libffi-dev \
-    # openssl-dev \
-    # gcompat
-    linux-headers-amd64 \
-    linux-headers-cloud-amd64 \
+    ## re2 \
+    ## re2-dev \
+    ## python3 \
+    # make \
+    # cmake \
+    # gcc \
+    # g++ \
+    # libjson-c-dev \
+    # libwebsockets-dev \
+    # libgcc-11-dev \
+    ## libffi \
+    ## libffi-dev \
+    ## openssl-dev \
+    ## gcompat
+    # linux-headers-amd64 \
+    # linux-headers-cloud-amd64 \
     binutils \
-    acl
-
-# Create gunicorn user for Django/Flask api endpoints
-RUN adduser gunicorn \
-  --disabled-password --gecos "Gunicorn User" \
-  --system \
-  --group \
-  --uid 500 \
-  --shell /usr/bin/bash \
-  --home /home/gunicorn && \
-  usermod -aG gunicorn www-data && \
-  mkdir -p /run/gunicorn-awsmgr && \
-  chmod 0755 /run/gunicorn-awsmgr
-
-# setup run/gunicorn
-RUN mkdir /run/gunicorn && \
-  chown gunicorn:gunicorn /run/gunicorn && \
-  chmod 0775 /run/gunicorn
-
-# Create node user for React/NextJS express server
-RUN adduser node \
-  --disabled-password --gecos "Node User" \
-  --system \
-  --group \
-  --uid 501 \
-  --shell /usr/bin/bash \
-  --home /home/node && \
-  usermod -aG www-data node && \
-  mkdir -p /run/node-awsmgr && \
-  chmod 0755 /run/node-awsmgr
-
-# setup run/node
-RUN mkdir /run/node && \
-  chown node:node /run/node && \
-  chmod 0775 /run/node
-
-# ## Prefetch our libraries for our NextJS application
-COPY ./yarn.lock /home/node/.
-COPY ./package.json /home/node/.
-RUN chown node:node /home/node/yarn.lock \
-  && chown node:node /home/node/package.json \
+    acl \
+  && pip install --root-user-action=ignore --upgrade pip \
+  && adduser cyverse \
+    --disabled-password --gecos "Cyverse User" \
+    --uid 1000 \
+    --shell /usr/bin/bash \
+    --home /home/cyverse \
+  && usermod -aG cyverse www-data \
+  && mkdir -p /usr/local/src/cyverse \
+  && chown cyverse:cyverse /usr/local/src/cyverse \
+  && chmod 0775 /usr/local/src/cyverse \
+  && pip install --root-user-action=ignore --upgrade pip \
+  && adduser gunicorn \
+    --disabled-password --gecos "Gunicorn User" \
+    --system \
+    --group \
+    --uid 500 \
+    --shell /usr/bin/bash \
+    --home /home/gunicorn \
+  && usermod -aG gunicorn www-data \
+  && usermod -aG cyverse gunicorn \
+  && mkdir -p /run/gunicorn-awsmgr \
+  && chmod 0755 /run/gunicorn-awsmgr \
+  && mkdir /run/gunicorn \
+  && chown gunicorn:gunicorn /run/gunicorn \
+  && chmod 0775 /run/gunicorn \
+  && adduser node \
+    --disabled-password --gecos "Node User" \
+    --system \
+    --group \
+    --uid 501 \
+    --shell /usr/bin/bash \
+    --home /home/node \
+  && usermod -aG www-data node \
+  && usermod -aG cyverse node \
   && mkdir -p /home/node/.yarn/cache \
-  && chown -R node:node /home/node/.yarn
+  && chown -R node:node /home/node/.yarn \
+  && mkdir -p /run/node-awsmgr \
+  && chmod 0755 /run/node-awsmgr \
+  && mkdir /run/node \
+  && chown node:node /run/node \
+  && chmod 0775 /run/node \
+  && apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
+
+COPY --chown=cyverse:cyverse ./requirements.txt /home/cyverse/.
+COPY --chown=node:node ./yarn.lock /home/node/.
+COPY --chown=node:node ./package.json /home/node/.
+
+# setup user python environment
+USER cyverse
+WORKDIR /home/cyverse
+RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=0755 \
+  cd /home/cyverse \
+  && python -m venv envs/flask-env \
+  && . /home/cyverse/envs/flask-env/bin/activate \
+  && pip install -r /home/cyverse/requirements.txt \
+  && rm /home/cyverse/requirements.txt
+
 USER node
 WORKDIR /home/node/
+
+## Pre install packages needed for UI into node's global space
 RUN --mount=type=cache,target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755 \
-  cd /home/node && [ -f yarn.lock ] && [ -f package.json ] \
+  mkdir -p $(yarn global dir) \
+  && mv /home/node/yarn.lock $(yarn global dir)/. \
+  && mv /home/node/package.json $(yarn global dir)/. \
+  && cd $(yarn global dir) \
   && SKIP_PREPARE=1 yarn install --cache-folder=${YARN_CACHE_FOLDER} --frozen-lockfile
-  # @fontsource/inter@5.0.16 \
-  # @next/eslint-plugin-next@14.1.0 \
-  # @storybook/addon-essentials@7.6.11 \
-  # @storybook/addon-interactions@7.6.11 \
-  # @storybook/addon-links@7.6.11 \
-  # @storybook/blocks@7.6.11 \
-  # @storybook/nextjs@7.6.11 \
-  # @storybook/react@7.6.11 \
-  # @storybook/test@7.6.11 \
-  # @types/jest@29.5.11 \
-  # @types/jsonwebtoken@9.0.5 \
-  # @types/node@20.11.10 \
-  # @types/react-dom@18.2.18 \
-  # @types/react@18.2.48 \
-  # @typescript-eslint/eslint-plugin@6.20.0 \
-  # @typescript-eslint/parser@6.20.0 \
-  # @vercel/ncc@0.38.1 \
-  # autoprefixer@10.4.17 \
-  # bootstrap@5.3.2 \
-  # dotenv@16.4.1 \
-  # eslint-config-next@14.1.0 \
-  # eslint-plugin-next@0.0.0 \
-  # eslint-plugin-react@7.33.2 \
-  # eslint-plugin-storybook@0.6.15 \
-  # eslint@8.56.0 \
-  # express@4.18.2 \
-  # husky@9.0.7 \
-  # jest@29.7.0 \
-  # jsonwebtoken@9.0.2 \
-  # next-cli@1.0.0 \
-  # next@14.1.0 \
-  # nodemon@3.0.3 \
-  # numeral@2.0.6 \
-  # prettier@3.2.4 \
-  # pretty-quick@4.0.0 \
-  # react-bootstrap@2.10.0 \
-  # react-dom@18.2.0 \
-  # react@18.2.0 \
-  # storybook@7.6.11 \
-  # ts-jest@29.1.2 \
-  # ts-node@10.9.2 \
-  # typescript@5.3.3 \
-  # sharp@0.32.6
 
-# RUN chown -R node:node /usr/local/lib/node_modules
-# RUN chmod -R 0775 /usr/local/lib/node_modules
-
-# Build notes: re2/re2-dev/libffi/libffi-dev & openssl-dev required by grpcio
-# which is required by our flask app.
-# libffi-dev already installed
-# WORKS TO HERE
 USER root
-# Python updates
-RUN pip install --root-user-action=ignore --upgrade pip
 COPY --chown=gunicorn:gunicorn ./requirements.txt /home/gunicorn/.
+
 USER gunicorn
 WORKDIR /home/gunicorn
-RUN --mount=type=cache,target=${PIP_CACHE_DIR},uid=500,gid=500,mode=0755 \
+RUN --mount=type=cache,target=${GUNICORN_PIP_CACHE_DIR},uid=500,gid=500,mode=0755 \
   cd /home/gunicorn \
   && python -m venv envs/flask-env \
   && . /home/gunicorn/envs/flask-env/bin/activate \
   && pip install -r /home/gunicorn/requirements.txt
+
 USER root
 RUN mkdir -p /usr/src/awsmgr && \
   chown gunicorn:gunicorn /usr/src/awsmgr

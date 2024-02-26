@@ -4,11 +4,11 @@ ARG CACHEBUST=20240221J
 FROM ${VICE_PARENT_IMAGE}:${VICE_PARENT_TAG}
 
 ARG VICE_NAME='viceawsmgr'
-ARG VICE_VERSION='v0.0.1'
-ARG DOCKER_IMAGE=${VICE_NAME}:${VICE_VERSION}
+ARG VICE_DKR_VERSION='v0.0.1'
+ARG DOCKER_IMAGE=${VICE_NAME}:${VICE_DKR_VERSION}
 
 # relative path to our Dockerfile
-ARG VICE_DIR="./src/vice/versions/${VICE_VERSION}"
+ARG VICE_DKR_DIR="${VICE_DKR_DIR}"
 ARG FLASK_DIR="./src/flask"
 ARG UI_DIR="./src/ui"
 
@@ -29,21 +29,21 @@ ENV SOCKET_FILE=${SOCKET_FILE} \
   CACHEBUST=${CACHEBUST}
 
 # COPY OUR entrypoint.sh script
-COPY ${VICE_DIR}/entrypoint.sh /usr/local/bin/
+COPY ${VICE_DKR_DIR}/entrypoint.sh /usr/local/bin/
 
 # supervisord
-COPY ${VICE_DIR}/etc/supervisord.conf /etc/supervisord.conf
-COPY ${VICE_DIR}/etc/supervisor.d/ /etc/supervisor.d/
+COPY ${VICE_DKR_DIR}/etc/supervisord.conf /etc/supervisord.conf
+COPY ${VICE_DKR_DIR}/etc/supervisor.d/ /etc/supervisor.d/
 
 # Nginx stuff
-COPY ${VICE_DIR}/etc/nginx/proxy_params /etc/nginx/proxy_params
-COPY ${VICE_DIR}/etc/nginx/sites-available/default /etc/nginx/sites-available/.
+COPY ${VICE_DKR_DIR}/etc/nginx/proxy_params /etc/nginx/proxy_params
+COPY ${VICE_DKR_DIR}/etc/nginx/sites-available/default /etc/nginx/sites-available/.
 
-COPY ${VICE_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.py
+COPY ${VICE_DKR_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.py
 
 # rsyslogd configuration
-COPY ${VICE_DIR}/etc/rsyslog.conf /etc/.
-COPY ${VICE_DIR}/etc/rsyslog.d/express.conf /etc/rsyslog.d/.
+COPY ${VICE_DKR_DIR}/etc/rsyslog.conf /etc/.
+COPY ${VICE_DKR_DIR}/etc/rsyslog.d/express.conf /etc/rsyslog.d/.
 
 RUN \
   echo "STATIC_ROOT=${STATIC_ROOT}\nCACHEBUST=${CACHEBUST}\n" >> .env \
@@ -93,13 +93,13 @@ RUN mkdir -p /usr/local/var/pulumi \
 
 COPY --chown=gunicorn:gunicorn ${FLASK_DIR}/dist/ /tmp/wheels/.
 COPY --chown=node:node ${UI_DIR}/dist/ /tmp/npms/.
-COPY --chown=node:node ${VICE_DIR}/usr/local/bin/update-npm.sh /usr/local/bin/.
-COPY --chown=node:node ${VICE_DIR}/usr/local/bin/cleanup-express-socket.py /usr/local/bin/.
-COPY --chown=gunicorn:gunicorn ${VICE_DIR}/usr/local/bin/update-wheel.sh /usr/local/bin/.
+COPY --chown=node:node ${VICE_DKR_DIR}/usr/local/bin/update-npm.sh /usr/local/bin/.
+COPY --chown=node:node ${VICE_DKR_DIR}/usr/local/bin/cleanup-express-socket.py /usr/local/bin/.
+COPY --chown=gunicorn:gunicorn ${VICE_DKR_DIR}/usr/local/bin/update-wheel.sh /usr/local/bin/.
 
 ## Install our awsmgr flask app into cyverse
 USER cyverse
-COPY --chown=cyverse:cyverse ${VICE_DIR}/home/cyverse/ /home/cyverse/.
+COPY --chown=cyverse:cyverse ${VICE_DKR_DIR}/home/cyverse/ /home/cyverse/.
 RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
   && . /home/cyverse/envs/flask-env/bin/activate \ 
@@ -108,8 +108,8 @@ RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=07
 ## ## Install our awsmgr flask app into gunicorn
 # Dependency cache mount to /root/.cache/pip!!
 USER gunicorn
-COPY ${VICE_DIR}/home/gunicorn/ /home/gunicorn/.
-# COPY ${VICE_DIR}/usr/local/bin/update-wheel.sh /home/gunicorn/bin/.
+COPY --chown=gunicorn:gunicorn ${VICE_DKR_DIR}/home/gunicorn/ /home/gunicorn/.
+# COPY ${VICE_DKR_DIR}/usr/local/bin/update-wheel.sh /home/gunicorn/bin/.
 
 # NOTE: /tmp/wheels is used during Dockerfile build, /mnt/dist/wheels while running
 RUN --mount=type=cache,target=${GUNICORN_PIP_CACHE_DIR},uid=500,gid=500,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
@@ -119,7 +119,7 @@ RUN --mount=type=cache,target=${GUNICORN_PIP_CACHE_DIR},uid=500,gid=500,mode=075
 
 USER node
 
-COPY ${VICE_DIR}/home/node/ /home/node/.
+COPY --chown=node:node ${VICE_DKR_DIR}/home/node/ /home/node/.
 ## Need to map our npm global -> ~/.local/bin & ~/.local/lib etc...
 WORKDIR /home/node
 ## tell the update-npm.sh to skill "yarn install" step / moved into awsmgr step
@@ -167,7 +167,7 @@ RUN \
 # USER node
 # RUN echo "SOCKET_FILE=$SOCKET_FILE" > /usr/local/src/awsmgr-ui/.env.local \
 #   && mkdir /home/node/bin
-# COPY ${VICE_DIR}/update-npm.sh /home/node/bin/.
+# COPY ${VICE_DKR_DIR}/update-npm.sh /home/node/bin/.
 # RUN --mount=type=cache,target=/root/.npm \
 #   cd /usr/local/src/awsmgr-ui \
 #   && npm install

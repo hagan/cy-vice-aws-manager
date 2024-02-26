@@ -41,7 +41,7 @@ ENV NODE_MAJOR=21
 
 # Passing --build-arg PULUMI_VERSION=vX.Y.Z will use that version
 # of the SDK. Otherwise, we use whatever get.pulumi.com thinks is
-# the latest
+# the latest 3.107.0
 ARG PULUMI_VERSION
 
 # Install the Pulumi SDK, including the CLI and language runtimes.

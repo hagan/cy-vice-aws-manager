@@ -20,3 +20,4 @@ pids
 # Us specifically
 npm-debug.log
 .env.local
+.env

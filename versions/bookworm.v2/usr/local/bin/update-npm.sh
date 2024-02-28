@@ -63,7 +63,7 @@ fi
 echo "Installing: ${LATEST_TGZ_APP}"
 if [[ -f "${LATEST_TGZ_APP}" ]]; then
   echo "Installing $LATEST_TGZ_APP via yarn..."
-  SKIP_PREPARE=1 yarn global add $LATEST_TGZ_APP
+  SKIP_PREPARE=1 yarn global add --production $LATEST_TGZ_APP && yarn cache clean
   # Verify it installed
   AWSMGRCHK=$(\
     yarn global list \

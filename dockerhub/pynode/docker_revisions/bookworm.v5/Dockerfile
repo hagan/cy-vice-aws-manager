@@ -1,7 +1,7 @@
 
 # Starting with python and adding our packages
-ARG PYNODE_PARENT_IMAGE=debian
-ARG PYNODE_PARENT_TAG=3.11.7-bookworm
+ARG PYNODE_PARENT_IMAGE=python
+ARG PYNODE_PARENT_TAG=3.11.8-bookworm
 
 FROM ${PYNODE_PARENT_IMAGE}:${PYNODE_PARENT_TAG}
 
@@ -89,6 +89,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_21.x | bash - && \
 #   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/microsoft.list && \
   apt-get update -y && \
   apt-get install -y nodejs yarn && \
+  apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
 ## NOTE: removed the following packages from this: azure-cli=2.33.1-1~bullseye, docker-ce, google-cloud-sdk, 

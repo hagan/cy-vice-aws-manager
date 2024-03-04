@@ -85,7 +85,12 @@ RUN \
   && setfacl -d -m g:www-data:rwx /run/node/sockets \
   && setfacl -d -m o::--- /run/node/sockets \
   && pip install supervisor \
-  && mkdir /ramdisk
+  && mkdir /ramdisk \
+  && mkdir -p /run/ttyd/sockets \
+  && chown cyverse:www-data /run/ttyd/sockets \
+  && chmod g+sw,o-rx /run/ttyd/sockets \
+  && setfacl -d -m g:www-data:rwx /run/ttyd/sockets \
+  && setfacl -d -m o::--- /run/ttyd/sockets
 
 RUN mkdir -p /usr/local/var/pulumi \
   && chown -f gunicorn:gunicorn /usr/local/var \
@@ -201,6 +206,7 @@ RUN \
 
 
 # END
+# EXPOSE 80 7681
 EXPOSE 80
 
 ENTRYPOINT ["sh", "/usr/local/bin/entrypoint.sh"]

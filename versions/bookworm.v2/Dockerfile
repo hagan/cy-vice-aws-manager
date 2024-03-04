@@ -1,11 +1,21 @@
-ARG VICE_PARENT_IMAGE=hagan/pynode
-ARG VICE_PARENT_TAG=bookworm.v5
-ARG CACHEBUST=20240221J
+ARG VICE_PARENT_IMAGE=hagan/awsmgr
+ARG VICE_PARENT_TAG=latest
+
 FROM ${VICE_PARENT_IMAGE}:${VICE_PARENT_TAG}
 
+ARG VICE_PARENT_IMAGE
+ENV VICE_PARENT_IMAGE=${VICE_PARENT_IMAGE}
+
+ARG VICE_PARENT_TAG
+ENV VICE_PARENT_TAG=${VICE_PARENT_TAG}
+
+ARG CACHEBUST=1
+
 ARG VICE_NAME='viceawsmgr'
-ARG VICE_DKR_VERSION='latest'
-ARG DOCKER_IMAGE=${VICE_NAME}:${VICE_DKR_VERSION}
+ARG VICE_TAG='latest'
+ARG DOCKER_IMAGE=${VICE_NAME}:${VICE_TAG}
+
+ARG CACHEBUST=1
 
 # relative path to our Dockerfile
 ARG VICE_DKR_DIR="${VICE_DKR_DIR}"
@@ -15,11 +25,13 @@ ARG UI_DIR="./src/ui"
 # app specific paths internal to the image
 ARG STATIC_ROOT='/var/www/static'
 
+## removed (not compatible with yarn 4+)
+# YARN_CACHE_FOLDER=/home/node/.yarn/cache \
+#   YARN_CACHE_VER=nodeapp_v1 \
+
 ARG SOCKET_FILE='/run/node/sockets/express-nextjs.socket'
 ENV SOCKET_FILE=${SOCKET_FILE} \
   CCACHE_DIR=/ccache \
-  YARN_CACHE_FOLDER=/home/node/.yarn/cache \
-  YARN_CACHE_VER=nodeapp_v1 \
   GUNICORN_PIP_CACHE_DIR=/home/gunicorn/.cache/pip \
   CYVERSE_PIP_CACHE_DIR=/home/cyverse/.cache/pip \
   NODE_VERSION=21.6.1 \
@@ -125,14 +137,10 @@ WORKDIR /home/node
 ## tell the update-npm.sh to skill "yarn install" step / moved into awsmgr step
 ## --mount=type=cache,id=${YARN_CACHE_VER},target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755
 RUN \
-  echo -e "SOCKET_FILE='${SOCKET_FILE}'\n" > /home/node/.env.local \
-  && echo -e "DEPLOY_TYPE='${DEPLOY_TYPE}'" >> /home/node/.env.local \
-  && [ -d /home/node/.npm ] \
-  || mkdir /home/node/.npm \
-  && [ -d $NPM_CONFIG_PREFIX ] \
-  || mkdir -p $NPM_CONFIG_PREFIX \
-  && cd /home/node \
-  && /usr/local/bin/update-npm.sh
+  echo -e "SOCKET_FILE='${SOCKET_FILE}'\n" > /home/node/.env.local || echo "failed SOCKET_FILE" \
+  && echo -e "DEPLOY_TYPE='${DEPLOY_TYPE}'" >> /home/node/.env.local || echo "failed DEPLOY_TYPE" \
+  && cd /home/node || echo "failed cd /home/node" \
+  && /usr/local/bin/update-npm.sh || echo "failed to update npm"
 
 ## Must "bootstrap" NextJS/ExpressJS apps with yarn
 # RUN --mount=type=cache,target=/root/.npm \
@@ -186,10 +194,14 @@ RUN \
 #   && npm install
 USER root
 
-
+RUN \
+    echo "Parent image name: ${VICE_PARENT_IMAGE}:${VICE_PARENT_TAG}" >> /etc/docker-image-ver \
+  && echo "Docker image name: ${DOCKER_IMAGE}" >> /etc/docker-image-ver \
+  && echo "       built date: $(date '+%A %W %Y %X')" >> /etc/docker-image-ver
 
 
 # END
 EXPOSE 80
 
 ENTRYPOINT ["sh", "/usr/local/bin/entrypoint.sh"]
+

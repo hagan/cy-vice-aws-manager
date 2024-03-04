@@ -8,8 +8,22 @@ ARG AWSMGR_PARENT_TAG=alpine3-19v2
 
 FROM ${AWSMGR_PARENT_IMAGE}:${AWSMGR_PARENT_TAG}
 
+ARG AWSMGR_PARENT_IMAGE
+ENV AWSMGR_PARENT_IMAGE=${AWSMGR_PARENT_IMAGE}
+
+ARG AWSMGR_PARENT_TAG
+ENV AWSMGR_PARENT_TAG=${AWSMGR_PARENT_TAG}
+
+ARG AWSMGR_NAME='pynode'
+ARG AWSMGR_TAG='latest'
+ARG DOCKER_IMAGE=${AWSMGR_NAME}:${AWSMGR_TAG}
+ENV DOCKER_IMAGE=${DOCKER_IMAGE}
+
+ARG CACHEBUST=1
+
 ## Docker buildx caching directories for yarn and pip
-ENV YARN_CACHE_FOLDER=/home/node/.yarn/cache
+# ENV YARN_CACHE_FOLDER=/home/node/.yarn/cache
+
 ENV GUNICORN_PIP_CACHE_DIR=/home/gunicorn/.cache/pip
 ENV CYVERSE_PIP_CACHE_DIR=/home/cyverse/.cache/pip
 
@@ -81,40 +95,44 @@ RUN apt-get update -y && \
     --home /home/node \
   && usermod -aG www-data node \
   && usermod -aG cyverse node \
-  && mkdir -p /home/node/.yarn/cache \
-  && chown -R node:node /home/node/.yarn \
   && mkdir -p /run/node-awsmgr \
   && chmod 0755 /run/node-awsmgr \
   && mkdir /run/node \
   && chown node:node /run/node \
   && chmod 0775 /run/node \
-  && apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
+ARG CACHEBUST=1
 COPY --chown=cyverse:cyverse ./requirements.txt /home/cyverse/.
-COPY --chown=node:node ./yarn.lock /home/node/.
+COPY --chown=node:node [ "./yarn.lock", "/tmp/npms/" ]
 COPY --chown=node:node ./package.json /home/node/.
+# COPY --chown=node:node ./package-lock.json /home/node/.
+COPY --chown=node:node [ "./*.tgz", "/tmp/npms/" ]
+COPY --chown=node:node [ "./.yarn/", "/home/node/.yarn" ]
+COPY --chown=node:node [ "./.yarnrc.yml", "/home/node/" ]
 
 # setup user python environment
 USER cyverse
 WORKDIR /home/cyverse
 RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=0755 \
   cd /home/cyverse \
-  && python -m venv envs/flask-env \
-  && . /home/cyverse/envs/flask-env/bin/activate \
-  && pip install -r /home/cyverse/requirements.txt \
-  && rm /home/cyverse/requirements.txt
+    && python -m venv envs/flask-env \
+    && . /home/cyverse/envs/flask-env/bin/activate \
+    && pip install -r /home/cyverse/requirements.txt \
+    && rm /home/cyverse/requirements.txt
 
 USER node
 WORKDIR /home/node/
 
-## Pre install packages needed for UI into node's global space
+## Pre install packages into yarn's global dir aka 'yarn add /tmp/npms/awsmgr-v0.0.1.tgz'
 RUN --mount=type=cache,target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755 \
-  mkdir -p $(yarn global dir) \
-  && mv /home/node/yarn.lock $(yarn global dir)/. \
-  && mv /home/node/package.json $(yarn global dir)/. \
-  && cd $(yarn global dir) \
-  && SKIP_PREPARE=1 yarn install --cache-folder=${YARN_CACHE_FOLDER} --frozen-lockfile
+  corepack enable \
+  && yarn set version canary \
+  && yarn init \
+  && export LATEST_TGZ_APP=$(find /tmp/npms -name '*.tgz' -type f -printf '%T@ %p\n' | sort -nr | head -n1 | cut -d' ' -f2- || true) \
+  && test -f ${LATEST_TGZ_APP} && yarn add ${LATEST_TGZ_APP} \
+  && echo "LATEST_TGZ_APP: ${LATEST_TGZ_APP}"
 
 USER root
 COPY --chown=gunicorn:gunicorn ./requirements.txt /home/gunicorn/.
@@ -131,3 +149,8 @@ USER root
 RUN mkdir -p /usr/src/awsmgr && \
   chown gunicorn:gunicorn /usr/src/awsmgr
 WORKDIR /usr/src/awsmgr
+
+RUN \
+    echo "Parent image name: ${AWSMGR_PARENT_IMAGE}:${AWSMGR_PARENT_TAG}" > /etc/docker-image-ver \
+  && echo "Docker image name: ${DOCKER_IMAGE}" >> /etc/docker-image-ver \
+  && echo "       built date: $(date '+%A %W %Y %X')" >> /etc/docker-image-ver

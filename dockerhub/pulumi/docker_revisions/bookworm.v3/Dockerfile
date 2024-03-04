@@ -8,6 +8,19 @@ ARG PULUMI_PARENT_TAG=bookworm
 
 FROM ${PULUMI_PARENT_IMAGE}:${PULUMI_PARENT_TAG}
 
+ARG PULUMI_PARENT_IMAGE=debian
+ENV PULUMI_PARENT_IMAGE=${PULUMI_PARENT_IMAGE}
+
+ARG PULUMI_PARENT_TAG=bookworm
+ENV PULUMI_PARENT_TAG=${PULUMI_PARENT_TAG}
+
+ARG PULUMI_NAME='pynode'
+ARG PULUMI_TAG='latest'
+ARG DOCKER_IMAGE=${PULUMI_NAME}:${PULUMI_TAG}
+ENV DOCKER_IMAGE=${DOCKER_IMAGE}
+
+ARG CACHEBUST=1
+
 # ENV GOLANG_VERSION 1.21.6
 
 ENV NODE_MAJOR=21
@@ -94,3 +107,8 @@ RUN curl \
     # chmod a+x /usr/local/bin/goreleaser && \
     # rm -Rf goreleaser_extraction && \
     # rm goreleaser.tar.gz
+
+RUN \
+    echo "Parent image name: ${PULUMI_PARENT_IMAGE}:${PULUMI_PARENT_TAG}" > /etc/docker-image-ver \
+  && echo "Docker image name: ${DOCKER_IMAGE}" >> /etc/docker-image-ver \
+  && echo "       built date: $(date '+%A %W %Y %X')" >> /etc/docker-image-ver

@@ -12,7 +12,7 @@ test
 
 node_modules
 .next/cache
-.yarn/cache
+# .yarn/cache
 .config/yarn/global/node_modules
 
 pids

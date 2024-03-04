@@ -1,30 +1,42 @@
 #!/bin/sh
 set -e
 
-if [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
+if [ -z "${AWS_ACCESS_KEY_ID}" ]; then
   echo -e "WARNING: 'AWS_ACCESS_KEY_ID' is unset!\n"
-  export AWS_ACCESS_KEY_ID=
+  AWS_ACCESS_KEY_ID=
+else
+  echo "Captured AWS_ACCESS_KEY_ID = '${AWS_ACCESS_KEY_ID}'"
 fi
 
-if [ ! -z "${AWS_SECRET_ACCESS_KEY}" ]; then
+if [ -z "${AWS_SECRET_ACCESS_KEY}" ]; then
   echo -e "WARNING: 'AWS_SECRET_ACCESS_KEY' is unset!\n"
-  export AWS_SECRET_ACCESS_KEY=
+  AWS_SECRET_ACCESS_KEY=
+else
+  echo "Captured AWS_SECRET_ACCESS_KEY = '${AWS_SECRET_ACCESS_KEY//?/*}'"
 fi
 
-if [ ! -z "${AWS_SESSION_TOKEN}" ]; then
-  export AWS_SESSION_TOKEN=
+if [ -z "${AWS_SESSION_TOKEN}" ]; then
+  AWS_SESSION_TOKEN=
+else
+  echo "Captured AWS_SESSION_TOKEN = '${AWS_SESSION_TOKEN//?/*}'"
 fi
 
-if [ ! -z "${AWS_KMS_KEY}" ]; then
-  export AWS_KMS_KEY=
+if [ -z "${AWS_KMS_KEY}" ]; then
+  AWS_KMS_KEY=
+else
+  echo "Captured AWS_KMS_KEY = '${AWS_KMS_KEY//?/*}'"
 fi
 
-if [ ! -z "${AWS_DEFAULT_REGION}" ]; then
-  export AWS_DEFAULT_REGION='us-west-2'
+if [ -z "${AWS_DEFAULT_REGION}" ]; then
+  AWS_DEFAULT_REGION='us-west-2'
+else
+  echo "Captured AWS_DEFAULT_REGION = '${AWS_DEFAULT_REGION}'"
 fi
 
-if [ ! -z "${AWS_DEFAULT_PROFILE}" ]; then
-  export AWS_DEFAULT_PROFILE=
+if [ -z "${AWS_DEFAULT_PROFILE}" ]; then
+  AWS_DEFAULT_PROFILE=
+else
+  echo "Captured AWS_DEFAULT_PROFILE = '${AWS_DEFAULT_PROFILE}'"
 fi
 
 export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_KMS_KEY AWS_DEFAULT_REGION AWS_DEFAULT_PROFILE
@@ -34,7 +46,7 @@ export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_KMS_KEY AWS
 
 ## launch shell
 if [ ! -z "$RUNSHELL" ] && [ "$RUNSHELL" == "yes" ]; then
-  /usr/bin/bash
+  exec /usr/bin/bash
 else
-  /usr/bin/supervisord -c /etc/supervisord.conf || /usr/bin/bash
+  exec /usr/bin/supervisord -c /etc/supervisord.conf || /usr/bin/bash
 fi

@@ -160,3 +160,9 @@ cython_debug/
 #.idea/
 
 *.code-workspace
+
+## staging files for awsmgr docker image
+dockerhub/awsmgr/docker_revisions/bookworm.v3/.yarn/
+dockerhub/awsmgr/docker_revisions/bookworm.v3/.yarnrc.yml
+dockerhub/awsmgr/docker_revisions/bookworm.v3/*.tgz
+dockerhub/awsmgr/docker_revisions/bookworm.v3/requirements.txt

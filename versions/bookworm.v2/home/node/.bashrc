@@ -118,3 +118,4 @@ fi
 
 # remap our global from /usr/local -> $HOME/.local
 export NPM_CONFIG_PREFIX=$HOME/.local
+

@@ -5,6 +5,19 @@ ARG PYNODE_PARENT_TAG=3.11.8-bookworm
 
 FROM ${PYNODE_PARENT_IMAGE}:${PYNODE_PARENT_TAG}
 
+ARG PYNODE_PARENT_IMAGE
+ENV PYNODE_PARENT_IMAGE=${PYNODE_PARENT_IMAGE}
+
+ARG PYNODE_PARENT_TAG
+ENV PYNODE_PARENT_TAG=${PYNODE_PARENT_TAG}
+
+ARG PYNODE_NAME='pynode'
+ARG PYNODE_TAG='latest'
+ARG DOCKER_IMAGE=${PYNODE_NAME}:${PYNODE_TAG}
+ENV DOCKER_IMAGE=${DOCKER_IMAGE}
+
+ARG CACHEBUST=1
+
 # INCLUDE node:21.6.1-bookworm
 # INCLUDE python:3.11.7-bookworm
 # INCLUDE golang:1.21.6-bookworm
@@ -33,6 +46,7 @@ RUN apt-get update && \
     apt-transport-https \
     lsb-release \
     # user utils
+    less \
     locales \
     findutils \
     wget \
@@ -73,24 +87,32 @@ RUN curl -L "https://github.com/tsl0922/ttyd/releases/download/1.6.3/ttyd.x86_64
 RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN curl -fsSL https://deb.nodesource.com/setup_21.x | bash - && \
-  curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor -o /etc/apt/keyrings/yarn-archive-keyring.gpg && \
-  echo "deb [signed-by=/etc/apt/keyrings/yarn-archive-keyring.gpg] https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-  echo "# deb-src [signed-by=/etc/apt/keyrings/yarn-archive-keyring.gpg] https://dl.yarnpkg.com/debian/ stable main" | tee -a /etc/apt/sources.list.d/yarn.list && \
-#   curl -sS https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg && \
-#   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg]  https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list && \
-#   echo "# deb-src [signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee -a /etc/apt/sources.list.d/docker.list && \
-#   curl -sS https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/google-cloud-archive-keyring.gpg && \
-#   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/google-cloud-archive-keyring.gpg] http://packages.cloud.google.com/apt cloud-sdk-$(. /etc/os-release && echo "$VERSION_CODENAME") main" | tee /etc/apt/sources.list.d/google-cloud.list && \
-#   echo "# deb-src [signed-by=/etc/apt/keyrings/google-cloud-archive-keyring.gpg] http://packages.cloud.google.com/apt cloud-sdk-$(. /etc/os-release && echo "$VERSION_CODENAME") main" | tee -a /etc/apt/sources.list.d/google-cloud.list && \
-#   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/google-cloud-archive-keyring.gpg] http://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list && \
-#   echo "# deb-src [signed-by=/etc/apt/keyrings/google-cloud-archive-keyring.gpg] http://apt.kubernetes.io/ kubernetes-xenial main" | tee -a /etc/apt/sources.list.d/kubernetes.list && \
-#   curl -sS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft-archive-keyring.gpg && \
-#   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/microsoft.list && \
-  apt-get update -y && \
-  apt-get install -y nodejs yarn && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/*
+#   && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor -o /etc/apt/keyrings/yarn-archive-keyring.gpg
+#   && echo "deb [signed-by=/etc/apt/keyrings/yarn-archive-keyring.gpg] https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+#   && echo "# deb-src [signed-by=/etc/apt/keyrings/yarn-archive-keyring.gpg] https://dl.yarnpkg.com/debian/ stable main" | tee -a /etc/apt/sources.list.d/yarn.list
+#   curl -sS https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg &&
+#   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg]  https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list &&
+#   echo "# deb-src [signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee -a /etc/apt/sources.list.d/docker.list &&
+#   curl -sS https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /etc/apt/keyrings/google-cloud-archive-keyring.gpg &&
+#   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/google-cloud-archive-keyring.gpg] http://packages.cloud.google.com/apt cloud-sdk-$(. /etc/os-release && echo "$VERSION_CODENAME") main" | tee /etc/apt/sources.list.d/google-cloud.list &&
+#   echo "# deb-src [signed-by=/etc/apt/keyrings/google-cloud-archive-keyring.gpg] http://packages.cloud.google.com/apt cloud-sdk-$(. /etc/os-release && echo "$VERSION_CODENAME") main" | tee -a /etc/apt/sources.list.d/google-cloud.list &&
+#   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/google-cloud-archive-keyring.gpg] http://apt.kubernetes.io/ kubernetes-xenial main" | tee /etc/apt/sources.list.d/kubernetes.list &&
+#   echo "# deb-src [signed-by=/etc/apt/keyrings/google-cloud-archive-keyring.gpg] http://apt.kubernetes.io/ kubernetes-xenial main" | tee -a /etc/apt/sources.list.d/kubernetes.list &&
+#   curl -sS https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft-archive-keyring.gpg &&
+#   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/microsoft.list &&
+
+RUN curl -fsSL https://deb.nodesource.com/setup_21.x | bash -
+## setup nodejs v21.6.2 & yarn 4.1.0
+RUN apt-get update -y \
+  && apt-get install -y nodejs \
+  && corepack enable \
+  && yarn set version canary \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 ## NOTE: removed the following packages from this: azure-cli=2.33.1-1~bullseye, docker-ce, google-cloud-sdk, 
 ## google-cloud-sdk-gke-gcloud-auth-plugin, & kubectl
+RUN touch /etc/docker-image-ver \
+  && echo "Parent image name: ${PYNODE_PARENT_IMAGE}:${PYNODE_PARENT_TAG}" >> /etc/docker-image-ver \
+  && echo "Docker image name: ${DOCKER_IMAGE}" >> /etc/docker-image-ver \
+  && echo "       built date: $(date '+%A %W %Y %X')" >> /etc/docker-image-ver

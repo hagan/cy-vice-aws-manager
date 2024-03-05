@@ -168,3 +168,4 @@ dockerhub/awsmgr/docker_revisions/bookworm.v3/.yarn/
 dockerhub/awsmgr/docker_revisions/bookworm.v3/.yarnrc.yml
 dockerhub/awsmgr/docker_revisions/bookworm.v3/*.tgz
 dockerhub/awsmgr/docker_revisions/bookworm.v3/requirements.txt
+versions/bookworm.v2/package.tar.gz

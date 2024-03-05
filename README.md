@@ -10,3 +10,7 @@ $ brew install git-lfs
 
 Linux/Debian
 $ apt install git-lfs
+
+#### Speedup / use a local registry!
+
+docker run -d -p 5000:5000 --name registry registry:2

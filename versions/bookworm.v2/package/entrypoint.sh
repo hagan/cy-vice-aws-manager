@@ -39,7 +39,17 @@ else
   echo "Captured AWS_DEFAULT_PROFILE = '${AWS_DEFAULT_PROFILE}'"
 fi
 
-export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_KMS_KEY AWS_DEFAULT_REGION AWS_DEFAULT_PROFILE
+if [ -z ${EXPRESS_SOCKET_FILE} ]; then
+  echo "Captured EXPRESS_SOCKET_FILE = '${EXPRESS_SOCKET_FILE}'"
+  exit 1
+fi
+
+if [ -z ${GUNICORN_SOCKET_FILE} ]; then
+  echo "Captured GUNICORN_SOCKET_FILE = '${GUNICORN_SOCKET_FILE}'"
+  exit 1
+fi
+
+export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_KMS_KEY AWS_DEFAULT_REGION AWS_DEFAULT_PROFILE EXPRESS_SOCKET_FILE GUNICORN_SOCKET_FILE
 
 # Take our environment variables from docker and insert into .env.local
 #test -d /usr/local/src/awsmgr-ui && echo "NODE_SOCK=$NODE_SOCK" > /usr/local/src/awsmgr-ui/.env.local

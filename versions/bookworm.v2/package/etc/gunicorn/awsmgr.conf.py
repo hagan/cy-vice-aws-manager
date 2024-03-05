@@ -2,10 +2,12 @@
 """
 Gunicorn configuration
 """
-
+import pprint
 import os
 import multiprocessing
 from dotenv import dotenv_values
+
+pp = pprint.PrettyPrinter(indent=4)
 
 # LOAD BEARER_TOKEN from /tmp/.env
 # if (os.path.exists("/tmp/.env")):
@@ -19,7 +21,7 @@ from dotenv import dotenv_values
 #     BEARER_TOKEN = config['BEARER_TOKEN']
 
 # create local environment values out of any envprefixed wit GUNICORN_
-
+pp.pprint(os.environ.items())
 for k,v in os.environ.items():
     if k.startswith("GUNICORN_"):
         key = k.split('_', 1)[1].lower()
@@ -30,7 +32,11 @@ for k,v in os.environ.items():
 umask = 0o002
 if not 'bind' in locals():
     # bind = "0.0.0.0:8080"
-    bind = "unix:/run/gunicorn/flask-awsmgr.sock"
+    if 'socket_file' not in locals():
+        raise Exception("Must set GUNICORN_SOCKET_FILE in environment!")
+    else:
+        print(f"binding to unix:{locals()['socket_file']}")
+        bind = f"unix:{locals()['socket_file']}"
 
 #spew = False if not 'spew' in locals() else (spew in ['true', 'True']))
 

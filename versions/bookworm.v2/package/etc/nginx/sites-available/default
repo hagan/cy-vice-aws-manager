@@ -20,17 +20,27 @@ server {
         root /var/www;
     }
 
-    location ~ ^/shell(.*)$ {
+    # location ~ ^/shell(.*)$ {
+    location /shell/ {
         ## couldn't get socket to work
-        proxy_pass http://unix:/run/ttyd/sockets/ttyd.socket;
+        proxy_pass http://unix:/run/ttyd/sockets/ttyd.socket:/;
         # proxy_pass http://127.0.0.1:7681/$1;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
+
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # buffers
+        proxy_buffering off;
+        proxy_buffers 16 4k;
+        proxy_buffer_size 2k;
+
+        # websocket
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
         # Timeout settings
         # Increase the timeout to 1 day, adjust as needed
         proxy_read_timeout 86400s;

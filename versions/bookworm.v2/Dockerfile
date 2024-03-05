@@ -29,94 +29,32 @@ ARG STATIC_ROOT='/var/www/static'
 # YARN_CACHE_FOLDER=/home/node/.yarn/cache \
 #   YARN_CACHE_VER=nodeapp_v1 \
 
-ARG SOCKET_FILE='/run/node/sockets/express-nextjs.socket'
-ENV SOCKET_FILE=${SOCKET_FILE} \
+ARG EXPRESS_SOCKET_FILE='/run/node/sockets/express-nextjs.socket'
+ARG GUNICORN_SOCKET_FILE='/run/gunicorn/flask-awsmgr.sock'
+ARG DEPLOY_TYPE=production
+ARG EXPRESS_DEBUG_CLEANUP=false
+
+ENV EXPRESS_SOCKET_FILE=${EXPRESS_SOCKET_FILE} \
+  GUNICORN_SOCKET_FILE=${GUNICORN_SOCKET_FILE} \
   CCACHE_DIR=/ccache \
-  GUNICORN_PIP_CACHE_DIR=/home/gunicorn/.cache/pip \
-  CYVERSE_PIP_CACHE_DIR=/home/cyverse/.cache/pip \
-  NODE_VERSION=21.6.1 \
-  NPM_CONFIG_PREFIX="/home/node/.local" \
-  SKIP_YARN_INSTALL=1 \
-  DEPLOY_TYPE=production \
-  CACHEBUST=${CACHEBUST}
+  DEPLOY_TYPE=${DEPLOY_TYPE} \
+  CACHEBUST=${CACHEBUST} \
+  EXPRESS_DEBUG_CLEANUP=${EXPRESS_DEBUG_CLEANUP}
 
-# COPY OUR entrypoint.sh script
-COPY ${VICE_DKR_DIR}/entrypoint.sh /usr/local/bin/
+USER root
+WORKDIR /
+COPY --chown=root:root ${VICE_DKR_DIR}/package.tar.gz .
+RUN tar xfz package.tar.gz && rm package.tar.gz
 
-# supervisord
-COPY ${VICE_DKR_DIR}/etc/supervisord.conf /etc/supervisord.conf
-COPY ${VICE_DKR_DIR}/etc/supervisor.d/ /etc/supervisor.d/
-
-# Nginx stuff
-COPY ${VICE_DKR_DIR}/etc/nginx/proxy_params /etc/nginx/proxy_params
-COPY ${VICE_DKR_DIR}/etc/nginx/sites-available/default /etc/nginx/sites-available/.
-
-COPY ${VICE_DKR_DIR}/etc/gunicorn/gunicorn-awsmgr.conf.py /etc/gunicorn/awsmgr.conf.py
-
-# rsyslogd configuration
-COPY ${VICE_DKR_DIR}/etc/rsyslog.conf /etc/.
-COPY ${VICE_DKR_DIR}/etc/rsyslog.d/express.conf /etc/rsyslog.d/.
-
-RUN \
-  echo "STATIC_ROOT=${STATIC_ROOT}\nCACHEBUST=${CACHEBUST}\n" >> .env \
-  && rm /bin/sh \
-  && ln -s /bin/bash /bin/sh \
-  && chmod u+x,g+x /usr/local/bin/entrypoint.sh \
-  && ln -s /usr/local/bin/entrypoint.sh / \
-  && [ -d /var/log/supervisor ] || mkdir -p /var/log/supervisor \
-  && [ -d  /var/log/ttyd ] || mkdir -p  /var/log/ttyd \
-  && [ -d /mnt/dist/wheels ] || mkdir -p /mnt/dist/wheels \
-  && [ -d /tmp/wheels ] || mkdir /tmp/wheels \
-  && chown cyverse:cyverse /var/log/ttyd \
-  && chown gunicorn:gunicorn /mnt/dist/wheels \
-  && chown gunicorn:gunicorn /tmp/wheels \
-  && [ -d /mnt/dist/npms ] || mkdir -p /mnt/dist/npms \
-  && [ -d /tmp/npms ] || mkdir /tmp/npms \
-  && [ -d /home/node/.local/bin ] || mkdir -p /home/node/.local/bin \
-  && chown node:node /mnt/dist/npms \
-  && chown node:node /tmp/npms \
-  && chown -Rvf node:node /home/node/.local \
-  && [ -d /home/gunicorn/bin ] || mkdir /home/gunicorn/bin \
-  && chown gunicorn:gunicorn /home/gunicorn/bin \
-  && mkdir -p /run/node/sockets \
-  && chown node:node /run/node \
-  && chown node:www-data /run/node/sockets \
-  && chmod g+sw,o-rx /run/node/sockets \
-  && setfacl -d -m g:www-data:rwx /run/node/sockets \
-  && setfacl -d -m o::--- /run/node/sockets \
-  && pip install supervisor \
-  && mkdir /ramdisk \
-  && mkdir -p /run/ttyd/sockets \
-  && chown cyverse:www-data /run/ttyd/sockets \
-  && chmod g+sw,o-rx /run/ttyd/sockets \
-  && setfacl -d -m g:www-data:rwx /run/ttyd/sockets \
-  && setfacl -d -m o::--- /run/ttyd/sockets
-
-RUN mkdir -p /usr/local/var/pulumi \
-  && chown -f gunicorn:gunicorn /usr/local/var \
-  && chmod -f g+sw /usr/local/var \
-  && chown -f gunicorn:gunicorn /usr/local/var/pulumi \
-  && chmod -f g+sw /usr/local/var/pulumi \
-  && setfacl \
-    -m u:cyverse:rwx,g:cyverse:rwx \
-    -m d:cyverse:rwx,g:cyverse:rwx \
-    -m o::r-x \
-    -m d:o::r-x /usr/local/var \
-  && setfacl \
-    -m u:cyverse:rwx,g:cyverse:rwx \
-    -m d:cyverse:rwx,g:cyverse:rwx \
-    -m o::--- \
-    -m d:o::--- /usr/local/var/pulumi
+RUN /setup.sh
 
 COPY --chown=gunicorn:gunicorn ${FLASK_DIR}/dist/ /tmp/wheels/.
 COPY --chown=node:node ${UI_DIR}/dist/ /tmp/npms/.
-COPY --chown=node:node ${VICE_DKR_DIR}/usr/local/bin/update-npm.sh /usr/local/bin/.
-COPY --chown=node:node ${VICE_DKR_DIR}/usr/local/bin/cleanup-express-socket.py /usr/local/bin/.
-COPY --chown=gunicorn:gunicorn ${VICE_DKR_DIR}/usr/local/bin/update-wheel.sh /usr/local/bin/.
 
 ## Install our awsmgr flask app into cyverse
 USER cyverse
-COPY --chown=cyverse:cyverse ${VICE_DKR_DIR}/home/cyverse/ /home/cyverse/.
+ENV CYVERSE_PIP_CACHE_DIR=/home/cyverse/.cache/pip
+# COPY --chown=cyverse:cyverse ${VICE_DKR_DIR}/home/cyverse/ /home/cyverse/.
 RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
   && . /home/cyverse/envs/flask-env/bin/activate \ 
@@ -125,24 +63,32 @@ RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=07
 ## ## Install our awsmgr flask app into gunicorn
 # Dependency cache mount to /root/.cache/pip!!
 USER gunicorn
-COPY --chown=gunicorn:gunicorn ${VICE_DKR_DIR}/home/gunicorn/ /home/gunicorn/.
-# COPY ${VICE_DKR_DIR}/usr/local/bin/update-wheel.sh /home/gunicorn/bin/.
+ENV GUNICORN_SOCKET_FILE=${GUNICORN_SOCKET_FILE} \
+  GUNICORN_PIP_CACHE_DIR=/home/gunicorn/.cache/pip \
+  DEPLOY_TYPE=${DEPLOY_TYPE}
 
 # NOTE: /tmp/wheels is used during Dockerfile build, /mnt/dist/wheels while running
-RUN --mount=type=cache,target=${GUNICORN_PIP_CACHE_DIR},uid=500,gid=500,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
+RUN --mount=type=cache,target=${GUNICORN_PIP_CACHE_DIR},uid=500,gid=500,mode=0755 \
+  wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
   && . /home/gunicorn/envs/flask-env/bin/activate \ 
-  && pip install --cache-dir=${GUNICORN_PIP_CACHE_DIR} $wheel_file
+  && pip install --cache-dir=${GUNICORN_PIP_CACHE_DIR} $wheel_file \
+  && pip install gunicorn~=21.2.0 \
+  && echo -e "GUNICORN_SOCKET_FILE='${GUNICORN_SOCKET_FILE}'\n" > /home/gunicorn/.env.local || echo "failed GUNICORN_SOCKET_FILE" \
+  && echo -e "DEPLOY_TYPE='${DEPLOY_TYPE}'" >> /home/gunicorn/.env.local || echo "failed DEPLOY_TYPE"
 
 USER node
-
-COPY --chown=node:node ${VICE_DKR_DIR}/home/node/ /home/node/.
+ENV EXPRESS_SOCKET_FILE=${EXPRESS_SOCKET_FILE} \
+  DEPLOY_TYPE=${DEPLOY_TYPE} \
+  NODE_VERSION=21.6.1 \
+  NPM_CONFIG_PREFIX="/home/node/.local"
+# COPY --chown=node:node ${VICE_DKR_DIR}/home/node/ /home/node/.
 ## Need to map our npm global -> ~/.local/bin & ~/.local/lib etc...
 WORKDIR /home/node
 ## tell the update-npm.sh to skill "yarn install" step / moved into awsmgr step
 ## --mount=type=cache,id=${YARN_CACHE_VER},target=${YARN_CACHE_FOLDER},uid=501,gid=501,mode=0755
 RUN \
-  echo -e "SOCKET_FILE='${SOCKET_FILE}'\n" > /home/node/.env.local || echo "failed SOCKET_FILE" \
+  echo -e "EXPRESS_SOCKET_FILE='${EXPRESS_SOCKET_FILE}'\n" > /home/node/.env.local || echo "failed EXPRESS_SOCKET_FILE" \
   && echo -e "DEPLOY_TYPE='${DEPLOY_TYPE}'" >> /home/node/.env.local || echo "failed DEPLOY_TYPE" \
   && cd /home/node || echo "failed cd /home/node" \
   && /usr/local/bin/update-npm.sh || echo "failed to update npm"
@@ -178,7 +124,7 @@ RUN \
 #   find /usr/local/src/awsmgr-ui -type f ! -executable -exec chmod g+w {} +
 ### vv WORKING
 # USER node
-# RUN echo "SOCKET_FILE=$SOCKET_FILE" > /usr/local/src/awsmgr-ui/.env.local \
+# RUN echo "EXPRESS_SOCKET_FILE=$EXPRESS_SOCKET_FILE" > /usr/local/src/awsmgr-ui/.env.local \
 #   && mkdir /home/node/bin
 # COPY ${VICE_DKR_DIR}/update-npm.sh /home/node/bin/.
 # RUN --mount=type=cache,target=/root/.npm \
@@ -204,10 +150,6 @@ RUN \
   && echo "Docker image name: ${DOCKER_IMAGE}" >> /etc/docker-image-ver \
   && echo "       built date: $(date '+%A %W %Y %X')" >> /etc/docker-image-ver
 
-
-# END
-# EXPOSE 80 7681
 EXPOSE 80
 
-ENTRYPOINT ["sh", "/usr/local/bin/entrypoint.sh"]
-
+ENTRYPOINT ["sh", "/entrypoint.sh"]

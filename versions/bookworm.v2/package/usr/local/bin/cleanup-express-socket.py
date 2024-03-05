@@ -21,16 +21,17 @@ def write_stderr(s):
 def main(args):
     logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(asctime)s %(levelname)s %(filename)s: %(message)s')
     logger = logging.getLogger("supervisord-watchdog")
-    debug_mode = os.environ.get('DEBUG', 'false').lower() == 'true'
+    debug_mode = os.environ.get('EXPRESS_DEBUG_CLEANUP', 'false').lower() == 'true'
 
     while True:
         logger.info("Listening for events...")
         headers, body = listener.wait(sys.stdin, sys.stdout)
         body = dict([pair.split(":") for pair in body.split(" ")])
 
-        logger.debug("Headers: %r", repr(headers))
-        logger.debug("Body: %r", repr(body))
-        logger.debug("Args: %r", repr(args))
+        if debug_mode:
+            logger.debug("Headers: %r", repr(headers))
+            logger.debug("Body: %r", repr(body))
+            logger.debug("Args: %r", repr(args))
 
         if debug_mode:
             ## Stops here, just show states
@@ -39,11 +40,13 @@ def main(args):
 
         try:
             if headers["eventname"] in ["PROCESS_STATE_STOPPED", "PROCESS_STATE_EXITED"]:
-                logger.info("Process entered stop/exit state...")
-                socket_file = os.environ['SOCKET_FILE']
+                if debug_mode:
+                    logger.info("Process entered stop/exit state...")
+                socket_file = os.environ['EXPRESS_SOCKET_FILE']
                 if (socket_file and os.path.exists(socket_file) ):
                     os.remove(socket_file)
-                    logger.info(f"Removed {socket_file} socket file")
+                    if debug_mode:
+                        logger.info(f"Removed {socket_file} socket file")
 
         except Exception as e:
             logger.critical("Unexpected Exception: %s", str(e))

@@ -120,6 +120,7 @@ RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=07
     && python -m venv envs/flask-env \
     && . /home/cyverse/envs/flask-env/bin/activate \
     && pip install -r /home/cyverse/requirements.txt \
+    && pip install gunicorn~=21.2.0 \
     && rm /home/cyverse/requirements.txt
 
 USER node

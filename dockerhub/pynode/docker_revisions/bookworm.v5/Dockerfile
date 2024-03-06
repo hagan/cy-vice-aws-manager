@@ -82,6 +82,7 @@ RUN apt-get update && \
     neovim \
     tmux \
     jq \
+    gettext-base \
     libjson-c-dev \
     libwebsockets-dev \
     && apt-get clean && \

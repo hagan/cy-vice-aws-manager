@@ -29,6 +29,11 @@ ENV CYVERSE_PIP_CACHE_DIR=/home/cyverse/.cache/pip
 
 USER root
 
+RUN wget -O- https://packages.irods.org/irods-signing-key.asc \
+  | gpg --dearmor > /usr/share/keyrings/irods-archive-keyring.gpg \
+  && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/irods-archive-keyring.gpg] https://packages.irods.org/apt/ $(lsb_release -sc) main" \
+  > /etc/apt/sources.list.d/renci-irods.list
+
 # RUN mkdir -p /usr/local/lib/node_modules
 # RUN chown -R node:node /usr/local/lib/node_modules
 # RUN chmod -R 0775 /usr/local/lib/node_modules
@@ -61,6 +66,7 @@ RUN apt-get update -y && \
     # linux-headers-cloud-amd64 \
     binutils \
     acl \
+    irods-icommands \
   && pip install --root-user-action=ignore --upgrade pip \
   && adduser cyverse \
     --disabled-password --gecos "Cyverse User" \

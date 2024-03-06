@@ -20,7 +20,7 @@ server {
         root /var/www;
     }
 
-    location / {
+    location /shell/ {
         proxy_pass http://unix:/run/ttyd/sockets/ttyd.socket;
         ## using a local port
         # proxy_pass http://127.0.0.1:7681/$1;
@@ -48,35 +48,47 @@ server {
     }
 
     # Gunicorn APIs
-    # location ~ ^/api(.*)$ {
-    #     include proxy_params;
-    #     proxy_pass http://unix:/run/gunicorn/flask-awsmgr.sock;
-    #     proxy_read_timeout 90s;
-    #     proxy_redirect off;
+    location ~ ^/api(.*)$ {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn/flask-awsmgr.sock;
+        proxy_read_timeout 90s;
+        proxy_redirect off;
 
-    #     # ADDED 20231027hf
-    #     proxy_buffering off;
+        # ADDED 20231027hf
+        proxy_buffering off;
 
-    #     proxy_set_header Host $host;
-    #     proxy_set_header X-Real-IP $remote_addr;
-    #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 
-    #     proxy_set_header X-Forwarded-Proto $scheme;
-    # }
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
     # NodeJS
-    # location / {
-    #     include proxy_params;
-    #     proxy_pass http://unix:/run/node/sockets/express-nextjs.socket;
-    #     proxy_read_timeout 90s;
-    #     proxy_redirect off;
-    #     # ADDED 20231027hf
-    #     proxy_buffering off;
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/node/sockets/express-nextjs.socket;
+        proxy_read_timeout 90s;
+        proxy_redirect off;
+        # ADDED 20231027hf
+        proxy_buffering off;
 
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ttyd websocket proxy
+    # location /ttyd/ws {
+    #     proxy_pass http://localhost:7581/ws;  # Forward traffic to ttyd
+    #     proxy_http_version 1.1;
+    #     proxy_set_header Upgrade $http_upgrade;
+    #     proxy_set_header Connection "upgrade";
     #     proxy_set_header Host $host;
     #     proxy_set_header X-Real-IP $remote_addr;
     #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-
     #     proxy_set_header X-Forwarded-Proto $scheme;
     # }
 

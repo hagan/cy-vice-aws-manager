@@ -58,7 +58,8 @@ ENV CYVERSE_PIP_CACHE_DIR=/home/cyverse/.cache/pip
 RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
   && . /home/cyverse/envs/flask-env/bin/activate \ 
-  && pip install --cache-dir=${CYVERSE_PIP_CACHE_DIR} $wheel_file
+  && pip install --cache-dir=${CYVERSE_PIP_CACHE_DIR} $wheel_file \
+  && mkdir -p /home/cyverse/.irods
 
 ## ## Install our awsmgr flask app into gunicorn
 # Dependency cache mount to /root/.cache/pip!!
@@ -75,7 +76,8 @@ RUN --mount=type=cache,target=${GUNICORN_PIP_CACHE_DIR},uid=500,gid=500,mode=075
   && pip install --cache-dir=${GUNICORN_PIP_CACHE_DIR} $wheel_file \
   && pip install gunicorn~=21.2.0 \
   && echo -e "GUNICORN_SOCKET_FILE='${GUNICORN_SOCKET_FILE}'\n" > /home/gunicorn/.env.local || echo "failed GUNICORN_SOCKET_FILE" \
-  && echo -e "DEPLOY_TYPE='${DEPLOY_TYPE}'" >> /home/gunicorn/.env.local || echo "failed DEPLOY_TYPE"
+  && echo -e "DEPLOY_TYPE='${DEPLOY_TYPE}'" >> /home/gunicorn/.env.local || echo "failed DEPLOY_TYPE" \
+  && mkdir -p /home/gunicorn/.irods
 
 USER node
 ENV EXPRESS_SOCKET_FILE=${EXPRESS_SOCKET_FILE} \
@@ -91,7 +93,8 @@ RUN \
   echo -e "EXPRESS_SOCKET_FILE='${EXPRESS_SOCKET_FILE}'\n" > /home/node/.env.local || echo "failed EXPRESS_SOCKET_FILE" \
   && echo -e "DEPLOY_TYPE='${DEPLOY_TYPE}'" >> /home/node/.env.local || echo "failed DEPLOY_TYPE" \
   && cd /home/node || echo "failed cd /home/node" \
-  && /usr/local/bin/update-npm.sh || echo "failed to update npm"
+  && /usr/local/bin/update-npm.sh || echo "failed to update npm" \
+  && mkdir -p /home/node/.irods
 
 ## Must "bootstrap" NextJS/ExpressJS apps with yarn
 # RUN --mount=type=cache,target=/root/.npm \
@@ -146,7 +149,7 @@ RUN \
 USER root
 
 RUN \
-    echo "Parent image name: ${VICE_PARENT_IMAGE}:${VICE_PARENT_TAG}" >> /etc/docker-image-ver \
+  echo "Parent image name: ${VICE_PARENT_IMAGE}:${VICE_PARENT_TAG}" >> /etc/docker-image-ver \
   && echo "Docker image name: ${DOCKER_IMAGE}" >> /etc/docker-image-ver \
   && echo "       built date: $(date '+%A %W %Y %X')" >> /etc/docker-image-ver
 

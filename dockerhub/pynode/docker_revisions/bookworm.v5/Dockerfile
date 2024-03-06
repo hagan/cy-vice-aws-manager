@@ -1,9 +1,28 @@
-
 # Starting with python and adding our packages
 ARG PYNODE_PARENT_IMAGE=python
 ARG PYNODE_PARENT_TAG=3.11.8-bookworm
+## Build stage for ttyd
 
+FROM debian:bookworm AS build
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    git \
+    libjson-c-dev \
+    libwebsockets-dev \
+    && rm -rf /var/lib/apt/lists/*
+# Clone ttyd repository
+RUN git clone https://github.com/tsl0922/ttyd.git
+# Build ttyd from source
+WORKDIR /ttyd/build
+RUN cmake .. \
+    && make \
+    && make install
+
+## Starting point (python 3.11 bookworm)
 FROM ${PYNODE_PARENT_IMAGE}:${PYNODE_PARENT_TAG}
+
 
 ARG PYNODE_PARENT_IMAGE
 ENV PYNODE_PARENT_IMAGE=${PYNODE_PARENT_IMAGE}
@@ -63,8 +82,13 @@ RUN apt-get update && \
     neovim \
     tmux \
     jq \
+    libjson-c-dev \
+    libwebsockets-dev \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+## copy ttyd from build step 
+COPY --from=build /usr/local/bin/ttyd /usr/local/bin/ttyd
 
 # Install MiniConda and Tini
 ENV TZ America/Phoenix
@@ -78,10 +102,14 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en  
 ENV LC_ALL en_US.UTF-8
 
-# install ttyd
-RUN curl -L "https://github.com/tsl0922/ttyd/releases/download/1.6.3/ttyd.x86_64" > ttyd && \
-    chmod a+x ttyd && \
-    mv ttyd /usr/local/bin/ttyd
+# install ttyd (1.6.3)
+# RUN curl -L "https://github.com/tsl0922/ttyd/releases/download/1.6.3/ttyd.x86_64" > ttyd && \
+#     chmod a+x ttyd && \
+#     mv ttyd /usr/local/bin/ttyd
+
+# RUN curl -L "https://github.com/tsl0922/ttyd/releases/download/1.7.4/ttyd.x86_64" > ttyd && \
+#     chmod a+x ttyd && \
+#     mv ttyd /usr/local/bin/ttyd
 
 ## cleanup / in case we missed something
 RUN apt-get clean && \

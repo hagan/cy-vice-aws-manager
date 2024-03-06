@@ -1,9 +1,0 @@
-[program:ttyd]
-
-### @TODO -> Must fix this!!! Very likely a user could break out of user 1000 into root?
-environment=HOME=/home/cyverse,AWS_ACCESS_KEY_ID="%(ENV_AWS_ACCESS_KEY_ID)s",AWS_SECRET_ACCESS_KEY="%(ENV_AWS_SECRET_ACCESS_KEY)s",AWS_SESSION_TOKEN="%(ENV_AWS_SESSION_TOKEN)s",AWS_KMS_KEY="%(ENV_AWS_KMS_KEY)s",AWS_DEFAULT_REGION="%(ENV_AWS_DEFAULT_REGION)s",AWS_DEFAULT_PROFILE="%(ENV_AWS_DEFAULT_PROFILE)s"
-command=/usr/local/bin/ttyd -p 7681 --uid=1000 --gid=1000 --writable --check-origin /usr/bin/bash
-autostart = true
-autorestart = true
-stderr_logfile = /var/log/ttyd/error.log
-stdout_logfile = /var/log/ttyd/access.log

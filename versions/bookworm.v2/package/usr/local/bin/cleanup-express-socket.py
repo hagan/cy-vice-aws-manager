@@ -3,6 +3,7 @@
 import sys
 import os
 import logging
+import pprint
 
 from supervisor.childutils import listener
 
@@ -39,7 +40,15 @@ def main(args):
             continue
 
         try:
-            if headers["eventname"] in ["PROCESS_STATE_STOPPED", "PROCESS_STATE_EXITED"]:
+            # logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            # logger.info(pprint.pformat(headers))
+            # logger.info(pprint.pformat(body))
+            # logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+
+            is_event_stop_or_exit = headers["eventname"] in ["PROCESS_STATE_STOPPED", "PROCESS_STATE_EXITED"]
+            is_express = 'groupname' in body and body['groupname'] == 'express'
+
+            if is_event_stop_or_exit and is_express:
                 if debug_mode:
                     logger.info("Process entered stop/exit state...")
                 socket_file = os.environ['EXPRESS_SOCKET_FILE']

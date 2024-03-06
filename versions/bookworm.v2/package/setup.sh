@@ -58,10 +58,10 @@ setfacl -d -m o::--- /run/node/sockets && { echo "-23-"; } || { echo "ERROR -23-
 pip install supervisor && { echo "-24-"; } || { echo "ERROR -24-"; exit 1; }
 mkdir /ramdisk && { echo "-25-"; } || { echo "ERROR -25-"; exit 1; }
 mkdir -p /run/ttyd/sockets && { echo "-26-"; } || { echo "ERROR -26-"; exit 1; }
-chown cyverse:www-data /run/ttyd/sockets && { echo "-27-"; } || { echo "ERROR -27-"; exit 1; }
-chmod g+sw,o-rx /run/ttyd/sockets && { echo "-28-"; } || { echo "ERROR -28-"; exit 1; }
-setfacl -d -m g:www-data:rwx /run/ttyd/sockets && { echo "-29-"; } || { echo "ERROR -29-"; exit 1; }
-setfacl -d -m o::--- /run/ttyd/sockets && { echo "-30-"; } || { echo "ERROR -30-"; exit 1; }
+# chown cyverse:www-data /run/ttyd/sockets && { echo "-27-"; } || { echo "ERROR -27-"; exit 1; }
+# chmod g+sw,o-rx /run/ttyd/sockets && { echo "-28-"; } || { echo "ERROR -28-"; exit 1; }
+# setfacl -d -m g:www-data:rwx /run/ttyd/sockets && { echo "-29-"; } || { echo "ERROR -29-"; exit 1; }
+# setfacl -d -m o::--- /run/ttyd/sockets && { echo "-30-"; } || { echo "ERROR -30-"; exit 1; }
 mkdir -p /usr/local/var/pulumi && { echo "-31-"; } || { echo "ERROR -31-"; exit 1; }
 chown -f gunicorn:gunicorn /usr/local/var && { echo "-32-"; } || { echo "ERROR -32-"; exit 1; }
 chmod -f g+sw /usr/local/var && { echo "-33-"; } || { echo "ERROR -33-"; exit 1; }

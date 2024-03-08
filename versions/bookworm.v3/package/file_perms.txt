@@ -1,0 +1,10 @@
+node:node 0755 /home/node
+node:node 0644 /home/node/.profile
+node:node 0644 /home/node/.bashrc
+cyverse:cyverse 0755 /home/cyverse
+cyverse:cyverse 0644 /home/cyverse/.profile
+cyverse:cyverse 0644 /home/cyverse/.bashrc
+gunicorn:gunicorn 0755 /home/gunicorn
+gunicorn:gunicorn 0644 /home/gunicorn/.profile
+gunicorn:gunicorn 0644 /home/gunicorn/.bashrc
+

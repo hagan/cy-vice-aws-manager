@@ -1,0 +1,25 @@
+.DS_Store
+LICENSE
+README.md
+
+test
+
+.dockerignore
+
+.git
+.gitkeep
+.gitignore
+
+node_modules
+.next/cache
+# .yarn/cache
+.config/yarn/global/node_modules
+
+pids
+*.pid
+*.seed
+
+# Us specifically
+npm-debug.log
+.env.local
+.env

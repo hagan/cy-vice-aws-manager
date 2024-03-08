@@ -47,6 +47,7 @@ RUN wget -O- https://packages.irods.org/irods-signing-key.asc \
 RUN apt-get update -y && \
   apt-get install -y --no-install-recommends \
     ccache \
+    memcached \
     ncurses-base \
     ## re2 \
     ## re2-dev \
@@ -64,6 +65,8 @@ RUN apt-get update -y && \
     ## gcompat
     # linux-headers-amd64 \
     # linux-headers-cloud-amd64 \
+    python3-pymemcache \
+    netcat-traditional \
     binutils \
     acl \
     irods-icommands \

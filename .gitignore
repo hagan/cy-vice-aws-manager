@@ -162,10 +162,10 @@ cython_debug/
 *.code-workspace
 
 ## staging files for awsmgr docker image
-dockerhub/awsmgr/docker_revisions/bookworm.v3/package.json
-dockerhub/awsmgr/docker_revisions/bookworm.v3/yarn.lock
-dockerhub/awsmgr/docker_revisions/bookworm.v3/.yarn/
-dockerhub/awsmgr/docker_revisions/bookworm.v3/.yarnrc.yml
-dockerhub/awsmgr/docker_revisions/bookworm.v3/*.tgz
-dockerhub/awsmgr/docker_revisions/bookworm.v3/requirements.txt
-versions/bookworm.v2/package.tar.gz
+dockerhub/awsmgr/docker_revisions/**/package.json
+dockerhub/awsmgr/docker_revisions/**/yarn.lock
+dockerhub/awsmgr/docker_revisions/**/.yarn/
+dockerhub/awsmgr/docker_revisions/**/.yarnrc.yml
+dockerhub/awsmgr/docker_revisions/**/*.tgz
+dockerhub/awsmgr/docker_revisions/**/requirements.txt
+versions/**/package.tar.gz

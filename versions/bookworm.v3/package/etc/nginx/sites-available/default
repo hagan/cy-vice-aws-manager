@@ -1,0 +1,99 @@
+proxy_headers_hash_max_size 1024;
+proxy_headers_hash_bucket_size 128;
+
+error_log /dev/stdout info;
+
+server {
+    listen 80;
+    listen [::]:80 default_server;
+    # server_name your_domain_or_IP;
+
+    access_log /dev/stdout;
+
+    # location /favicon.ico {
+    #     root /var/www/static;
+    #     access_log off;
+    #     log_not_found off;
+    # }
+
+    location /static/ {
+        root /var/www;
+    }
+
+    location /shell/ {
+        proxy_pass http://unix:/run/ttyd/sockets/ttyd.socket;
+        ## using a local port
+        # proxy_pass http://127.0.0.1:7681/$1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # buffers
+        proxy_buffering off;
+        proxy_buffers 16 4k;
+        proxy_buffer_size 2k;
+
+        # websocket
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+        # Timeout settings
+        # Increase the timeout to 1 day, adjust as needed
+        proxy_read_timeout 86400s;
+        proxy_connect_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # Gunicorn APIs
+    location ~ ^/api(.*)$ {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn/flask-awsmgr.sock;
+        proxy_read_timeout 90s;
+        proxy_redirect off;
+
+        # ADDED 20231027hf
+        proxy_buffering off;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # NodeJS
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/node/sockets/express-nextjs.socket;
+        proxy_read_timeout 90s;
+        proxy_redirect off;
+        # ADDED 20231027hf
+        proxy_buffering off;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # ttyd websocket proxy
+    # location /ttyd/ws {
+    #     proxy_pass http://localhost:7581/ws;  # Forward traffic to ttyd
+    #     proxy_http_version 1.1;
+    #     proxy_set_header Upgrade $http_upgrade;
+    #     proxy_set_header Connection "upgrade";
+    #     proxy_set_header Host $host;
+    #     proxy_set_header X-Real-IP $remote_addr;
+    #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    #     proxy_set_header X-Forwarded-Proto $scheme;
+    # }
+
+    # You may need this to prevent return 404 recursion.
+    location = /404.html {
+        internal;
+    }
+}

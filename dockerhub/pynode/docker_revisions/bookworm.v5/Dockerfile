@@ -85,6 +85,7 @@ RUN apt-get update && \
     gettext-base \
     libjson-c-dev \
     libwebsockets-dev \
+    libevent-dev \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

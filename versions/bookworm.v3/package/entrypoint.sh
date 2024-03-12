@@ -37,17 +37,17 @@ if [ ! -z "${AWS_KMS_KEY}" ]; then
   # echo "Captured AWS_KMS_KEY = '${AWS_KMS_KEY//?/*}'"
 fi
 
-if [ -z "${AWS_DEFAULT_REGION}" ]; then
-  export AWS_DEFAULT_REGION='us-west-2'
+if [ -z "${AWS_REGION}" ]; then
+  export AWS_REGION='us-west-2'
 else
-  echo "Captured AWS_DEFAULT_REGION = '${AWS_DEFAULT_REGION}'"
+  echo "Captured AWS_REGION = '${AWS_REGION}'"
 fi
 
-if [ -z "${AWS_DEFAULT_PROFILE}" ]; then
-  export AWS_DEFAULT_PROFILE='default'
+if [ -z "${AWS_PROFILE}" ]; then
+  export AWS_PROFILE='default'
 else
   : # noop
-  # echo "Captured AWS_DEFAULT_PROFILE = '${AWS_DEFAULT_PROFILE}'"
+  # echo "Captured AWS_PROFILE = '${AWS_PROFILE}'"
 fi
 
 if [ ! -z ${EXPRESS_SOCKET_FILE} ]; then
@@ -63,7 +63,21 @@ fi
 # Take our environment variables from docker and insert into .env.local
 #test -d /usr/local/src/awsmgr-ui && echo "NODE_SOCK=$NODE_SOCK" > /usr/local/src/awsmgr-ui/.env.local
 
+## test we can access aws with credentials
 
+  # AWS_ACCESS_KEY_ID='${AWS_ACCESS_KEY_ID}' \
+  # AWS_SECRET_ACCESS_KEY='${AWS_SECRET_ACCESS_KEY}' \
+  # AWS_SESSION_TOKEN='${AWS_SESSION_TOKEN}' \
+
+if [[ -z ${SKIP_AUTH_TEST} ]]; then
+  /usr/bin/su --whitelist-environment=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN - cyverse -c " \
+  /home/cyverse/envs/flask-env/bin/awsmgr renew-token \
+  --env AWS_ACCESS_KEY_ID \
+  --env AWS_SECRET_ACCESS_KEY \
+  --env AWS_SESSION_TOKEN \
+  --skip-memcached \
+  --fakeit"
+fi
 
 ## launch shell
 if [ ! -z "$RUNSHELL" ] && [ "$RUNSHELL" == "yes" ]; then

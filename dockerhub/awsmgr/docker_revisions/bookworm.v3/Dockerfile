@@ -48,6 +48,7 @@ RUN apt-get update -y && \
   apt-get install -y --no-install-recommends \
     ccache \
     memcached \
+    cron \
     ncurses-base \
     ## re2 \
     ## re2-dev \
@@ -65,7 +66,6 @@ RUN apt-get update -y && \
     ## gcompat
     # linux-headers-amd64 \
     # linux-headers-cloud-amd64 \
-    python3-pymemcache \
     netcat-traditional \
     binutils \
     acl \
@@ -81,6 +81,7 @@ RUN apt-get update -y && \
   && chown cyverse:cyverse /usr/local/src/cyverse \
   && chmod 0775 /usr/local/src/cyverse \
   && pip install --root-user-action=ignore --upgrade pip \
+  && pip3 install supervisor pymemcache \
   && adduser gunicorn \
     --disabled-password --gecos "Gunicorn User" \
     --system \

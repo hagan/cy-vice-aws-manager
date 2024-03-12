@@ -25,7 +25,7 @@ def main(args):
     debug_mode = os.environ.get('EXPRESS_DEBUG_CLEANUP', 'false').lower() == 'true'
 
     while True:
-        logger.info("Listening for events...")
+        # logger.info("Listening for events...")
         headers, body = listener.wait(sys.stdin, sys.stdout)
         body = dict([pair.split(":") for pair in body.split(" ")])
 
@@ -40,15 +40,16 @@ def main(args):
             continue
 
         try:
-            # logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-            # logger.info(pprint.pformat(headers))
-            # logger.info(pprint.pformat(body))
-            # logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-
-            is_event_stop_or_exit = headers["eventname"] in ["PROCESS_STATE_STOPPED", "PROCESS_STATE_EXITED"]
-            is_express = 'groupname' in body and body['groupname'] == 'express'
+            # is_event_stop_or_exit = headers["eventname"] in ["PROCESS_STATE_STOPPED", "PROCESS_STATE_EXITED"]
+            is_event_stop_or_exit = body['from_state'] in ["STOPPING"]
+            is_express = 'processname' in body and body['processname'] == 'express'
 
             if is_event_stop_or_exit and is_express:
+                # logger.info("vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvEXPRESSvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+                # logger.info(pprint.pformat(headers))
+                # logger.info(pprint.pformat(body))
+                # logger.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^EXPRESS^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+
                 if debug_mode:
                     logger.info("Process entered stop/exit state...")
                 socket_file = os.environ['EXPRESS_SOCKET_FILE']

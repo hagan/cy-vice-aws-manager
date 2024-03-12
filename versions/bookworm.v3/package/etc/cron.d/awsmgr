@@ -1,0 +1,2 @@
+# */1 * * * * cyverse test -e /home/cyverse/envs/flask-env/bin/awsmgr && /home/cyverse/envs/flask-env/bin/awsmgr renew-token | logger -t awsmgr -p cron.err
+# */14 * * * * cyverse test -e /home/cyverse/envs/flask-env/bin/awsmgr && /home/cyverse/envs/flask-env/bin/awsmgr renew-token | logger -t awsmgr -p cron.err

@@ -11,44 +11,58 @@ cat /etc/docker-image-ver
 # echo '{"irods_host": "data.cyverse.org", "irods_port": 1247, "irods_user_name": "$IPLANT_USER", "irods_zone_name": "iplant"}' | /usr/bin/envsubst > /home/gunicorn/.irods/irods_environment.json
 # chown gunicorn:gunicorn /home/gunicorn/.irods/irods_environment.json
 
+if [ -z "${AWS_ACCOUNT_ID}" ]; then
+  set +e
+  _ACCOUNT_ID=$(/usr/local/bin/aws sts get-caller-identity --query "Account" --output text)
+  RETVAL=$?
+  set -e
+  if [ ${RETVAL} -eq 0 ]; then
+    export AWS_ACCOUNT_ID=${_ACCOUNT_ID}
+  else
+    >&2 echo "ERROR: Failed to find AWS_ACCOUNT_ID"
+    export AWS_ACCOUNT_ID=
+  fi
+fi
+echo "AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID//[^0-9]/}" >> /etc/environment
+
+if [ -z "${AWS_CREDENTIAL_EXPIRATION}" ]; then
+  export AWS_CREDENTIAL_EXPIRATION=
+fi
+
+if [ -z "${AWS_DEFAULT_REGION}" ]; then
+  export AWS_DEFAULT_REGION='us-west-2'
+else
+  echo "Captured AWS_DEFAULT_REGION = '${AWS_DEFAULT_REGION}'"
+fi
+
+if [ -z "${AWS_KMS_KEY}" ]; then
+  export AWS_KMS_KEY=
+fi
+
+## REQUIRED!
+
 if [ -z "${AWS_ACCESS_KEY_ID}" ]; then
-  echo -e "'AWS_ACCESS_KEY_ID' is unset!\n"
+  echo -e "ERROR: 'AWS_ACCESS_KEY_ID' is unset!\n"
 else
   : # noop
   # echo "Captured AWS_ACCESS_KEY_ID = '${AWS_ACCESS_KEY_ID}'"
 fi
 
 if [ -z "${AWS_SECRET_ACCESS_KEY}" ]; then
-  echo -e "'AWS_SECRET_ACCESS_KEY' environment variable is unset!\n"
+  echo -e "ERROR: 'AWS_SECRET_ACCESS_KEY' environment variable is unset!\n"
 else
   : # noop
   # echo "Captured AWS_SECRET_ACCESS_KEY = '${AWS_SECRET_ACCESS_KEY//?/*}'"
 fi
 
 if [ -z "${AWS_SESSION_TOKEN}" ]; then
-  echo -e "'AWS_SESSION_TOKEN' environment variable is unset!\n"
+  echo -e "ERROR: 'AWS_SESSION_TOKEN' environment variable is unset!\n"
 else
   : # noop
   # echo "Captured AWS_SESSION_TOKEN = '${AWS_SESSION_TOKEN//?/*}'"
 fi
 
-if [ ! -z "${AWS_KMS_KEY}" ]; then
-  : # noop
-  # echo "Captured AWS_KMS_KEY = '${AWS_KMS_KEY//?/*}'"
-fi
-
-if [ -z "${AWS_REGION}" ]; then
-  export AWS_REGION='us-west-2'
-else
-  echo "Captured AWS_REGION = '${AWS_REGION}'"
-fi
-
-if [ -z "${AWS_PROFILE}" ]; then
-  export AWS_PROFILE='default'
-else
-  : # noop
-  # echo "Captured AWS_PROFILE = '${AWS_PROFILE}'"
-fi
+## Paths to our socket files
 
 if [ ! -z ${EXPRESS_SOCKET_FILE} ]; then
   echo "Captured EXPRESS_SOCKET_FILE = '${EXPRESS_SOCKET_FILE}'"
@@ -58,7 +72,7 @@ if [ ! -z ${GUNICORN_SOCKET_FILE} ]; then
   echo "Captured GUNICORN_SOCKET_FILE = '${GUNICORN_SOCKET_FILE}'"
 fi
 
-# export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_KMS_KEY AWS_DEFAULT_REGION 
+# export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_KMS_KEY AWS_DEFAULT_REGION
 
 # Take our environment variables from docker and insert into .env.local
 #test -d /usr/local/src/awsmgr-ui && echo "NODE_SOCK=$NODE_SOCK" > /usr/local/src/awsmgr-ui/.env.local
@@ -69,15 +83,20 @@ fi
   # AWS_SECRET_ACCESS_KEY='${AWS_SECRET_ACCESS_KEY}' \
   # AWS_SESSION_TOKEN='${AWS_SESSION_TOKEN}' \
 
-if [[ -z ${SKIP_AUTH_TEST} ]]; then
-  /usr/bin/su --whitelist-environment=AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN - cyverse -c " \
-  /home/cyverse/envs/flask-env/bin/awsmgr renew-token \
-  --env AWS_ACCESS_KEY_ID \
-  --env AWS_SECRET_ACCESS_KEY \
-  --env AWS_SESSION_TOKEN \
-  --skip-memcached \
-  --fakeit"
-fi
+
+## THIS CANNOT WORK... Must start after memcached is running...
+# if [[ -z ${SKIP_AUTH_TEST} ]]; then
+#   /usr/bin/su --whitelist-environment=AWS_ACCOUNT_ID,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN,AWS_DEFAULT_REGION,AWS_CREDENTIAL_EXPIRATION - cyverse -c " \
+#   /home/cyverse/envs/flask-env/bin/awsmgr renew-token \
+#   --env AWS_ACCOUNT_ID \
+#   --env AWS_ACCESS_KEY_ID \
+#   --env AWS_SECRET_ACCESS_KEY \
+#   --env AWS_SESSION_TOKEN \
+#   --env AWS_DEFAULT_REGION \
+#   --env AWS_CREDENTIAL_EXPIRATION \
+#   --skip-memcached \
+#   --fakeit"
+# fi
 
 ## launch shell
 if [ ! -z "$RUNSHELL" ] && [ "$RUNSHELL" == "yes" ]; then

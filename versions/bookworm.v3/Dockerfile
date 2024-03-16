@@ -44,7 +44,7 @@ ENV EXPRESS_SOCKET_FILE=${EXPRESS_SOCKET_FILE} \
 USER root
 WORKDIR /
 COPY --chown=root:root ${VICE_DKR_DIR}/package.tar.gz .
-RUN tar xfz package.tar.gz && rm package.tar.gz
+RUN echo "CACHEBUST=$CACHEBUST" && tar xfz package.tar.gz && rm package.tar.gz
 
 RUN /setup.sh
 
@@ -57,7 +57,7 @@ ENV CYVERSE_PIP_CACHE_DIR=/home/cyverse/.cache/pip
 # COPY --chown=cyverse:cyverse ${VICE_DKR_DIR}/home/cyverse/ /home/cyverse/.
 RUN --mount=type=cache,target=${CYVERSE_PIP_CACHE_DIR},uid=1000,gid=1000,mode=0755 wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
-  && . /home/cyverse/envs/flask-env/bin/activate \ 
+  && . /home/cyverse/envs/flask-env/bin/activate \
   && pip install --cache-dir=${CYVERSE_PIP_CACHE_DIR} $wheel_file \
   && mkdir -p /home/cyverse/.irods
 
@@ -72,7 +72,7 @@ ENV GUNICORN_SOCKET_FILE=${GUNICORN_SOCKET_FILE} \
 RUN --mount=type=cache,target=${GUNICORN_PIP_CACHE_DIR},uid=500,gid=500,mode=0755 \
   wheel_file=$(ls -tp /tmp/wheels/*.whl | head -n1) \
   && echo "wheel_file = $wheel_file" \
-  && . /home/gunicorn/envs/flask-env/bin/activate \ 
+  && . /home/gunicorn/envs/flask-env/bin/activate \
   && pip install --cache-dir=${GUNICORN_PIP_CACHE_DIR} $wheel_file \
   && pip install gunicorn~=21.2.0 \
   && echo -e "GUNICORN_SOCKET_FILE='${GUNICORN_SOCKET_FILE}'\n" > /home/gunicorn/.env.local || echo "failed GUNICORN_SOCKET_FILE" \

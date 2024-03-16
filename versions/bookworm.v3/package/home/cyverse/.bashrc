@@ -119,28 +119,37 @@ fi
 export FLASK_APP=awsmgr.app
 
 # @TODO: This needs to be moved to a mount/share on cyverse user to preserve things!
-export PULUMI_HOME=/home/cyverse/.pulumi
+export PULUMI_HOME=$HOME/.pulumi
 export PULUMI_BACKEND_URL="file:///usr/local/var/pulumi"
 export PULUMI_CONFIG_PASSPHRASE=''
 
 pulumi login --local
 
+AWS_ACCOUNT_ID=
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
 AWS_SESSION_TOKEN=
-AWS_KMS_KEY=
 AWS_DEFAULT_REGION=
-AWS_DEFAULT_PROFILE=
+AWS_CREDENTIAL_EXPIRATION=
+AWS_KMS_KEY=
 
 function get_cache_key() {
     ## only works if pymemcache is available / install systemwide
-    python -c "from pymemcache.client.base import Client; print(str(Client(('localhost', 11212)).get('$1', '')));"
+    python -c "from pymemcache.client.base import Client; print(str(Client(('localhost', 11212)).get('$1', b'').decode('utf-8')));"
 }
 
 ## Load our credentials
 function update_aws_temp_token() {
     #@todo: rewrite this!
     had_issue=false
+    # _AWS_ACCOUNT_ID=$(echo "get AWS_ACCOUNT_ID" | nc -w 1 localhost 11212 | awk '/^VALUE/{flag=1;next}/^END/{flag=0}flag')
+    _AWS_ACCOUNT_ID=$(get_cache_key 'AWS_ACCOUNT_ID')
+    if [[ -z ${_AWS_ACCOUNT_ID} ]]; then
+      :
+    elif [[ ( ! -z ${_AWS_ACCOUNT_ID} ) && ( ( -z $AWS_ACCOUNT_ID ) || ( ${AWS_ACCOUNT_ID} != ${_AWS_ACCOUNT_ID} ) ) ]]; then
+        export AWS_ACCOUNT_ID=${_AWS_ACCOUNT_ID}
+    fi
+
     # _AWS_ACCESS_KEY_ID=$(echo "get AWS_ACCESS_KEY_ID" | nc -w 1 localhost 11212 | awk '/^VALUE/{flag=1;next}/^END/{flag=0}flag')
     _AWS_ACCESS_KEY_ID=$(get_cache_key 'AWS_ACCESS_KEY_ID')
     if [[ -z ${_AWS_ACCESS_KEY_ID} ]]; then
@@ -165,35 +174,49 @@ function update_aws_temp_token() {
         export AWS_SESSION_TOKEN=${_AWS_SESSION_TOKEN}
     fi
 
-    # _AWS_KMS_KEY=$(echo "get AWS_KMS_KEY" | nc -w 1 localhost 11212 | awk '/^VALUE/{flag=1;next}/^END/{flag=0}flag')
-    _AWS_KMS_KEY=$(get_cache_key 'AWS_KMS_KEY')
-    if [[ -z ${_AWS_KMS_KEY} ]]; then
-      had_issue=true
-    elif [[ ( ! -z ${_AWS_KMS_KEY} ) && ( ( -z $AWS_KMS_KEY ) || ( ${AWS_KMS_KEY} != ${_AWS_KMS_KEY} ) ) ]]; then
-        export AWS_KMS_KEY=${_AWS_KMS_KEY}
-    fi
-
     # _AWS_DEFAULT_REGION=$(echo "get AWS_DEFAULT_REGION" | nc -w 1 localhost 11212 | awk '/^VALUE/{flag=1;next}/^END/{flag=0}flag')
     _AWS_DEFAULT_REGION=$(get_cache_key 'AWS_DEFAULT_REGION')
     if [[ -z ${_AWS_DEFAULT_REGION} ]]; then
-      had_issue=true
+      :
     elif [[ ( ! -z ${_AWS_DEFAULT_REGION} ) && ( ( -z $AWS_DEFAULT_REGION ) || ( ${AWS_DEFAULT_REGION} != ${_AWS_DEFAULT_REGION} ) ) ]]; then
         export AWS_DEFAULT_REGION=${_AWS_DEFAULT_REGION}
     fi
 
-    # _AWS_DEFAULT_PROFILE=$(echo "get AWS_DEFAULT_PROFILE" | nc -w 1 localhost 11212 | awk '/^VALUE/{flag=1;next}/^END/{flag=0}flag')
-    _AWS_DEFAULT_PROFILE=$(get_cache_key 'AWS_DEFAULT_PROFILE')
-    if [[ -z ${_AWS_DEFAULT_PROFILE} ]]; then
-      had_issue=true
-    elif [[ ( ! -z ${_AWS_DEFAULT_PROFILE} ) && ( ( -z $AWS_DEFAULT_PROFILE ) || ( ${AWS_DEFAULT_PROFILE} != ${_AWS_DEFAULT_PROFILE} ) ) ]]; then
-        export AWS_DEFAULT_PROFILE=${_AWS_DEFAULT_PROFILE}
+    # _AWS_CREDENTIAL_EXPIRATION=$(echo "get AWS_CREDENTIAL_EXPIRATION" | nc -w 1 localhost 11212 | awk '/^VALUE/{flag=1;next}/^END/{flag=0}flag')
+    _AWS_CREDENTIAL_EXPIRATION=$(get_cache_key 'AWS_CREDENTIAL_EXPIRATION')
+    if [[ -z ${_AWS_CREDENTIAL_EXPIRATION} ]]; then
+      :
+    elif [[ ( ! -z ${_AWS_CREDENTIAL_EXPIRATION} ) && ( ( -z $AWS_CREDENTIAL_EXPIRATION ) || ( ${AWS_CREDENTIAL_EXPIRATION} != ${_AWS_CREDENTIAL_EXPIRATION} ) ) ]]; then
+        export AWS_CREDENTIAL_EXPIRATION=${_AWS_CREDENTIAL_EXPIRATION}
     fi
 
+    # _AWS_KMS_KEY=$(echo "get AWS_KMS_KEY" | nc -w 1 localhost 11212 | awk '/^VALUE/{flag=1;next}/^END/{flag=0}flag')
+    _AWS_KMS_KEY=$(get_cache_key 'AWS_KMS_KEY')
+    _AWS_KMS_KEY=$(get_cache_key 'AWS_KMS_KEY')
+    if [[ -z ${_AWS_KMS_KEY} ]]; then
+      :
+    elif [[ ( ! -z ${_AWS_KMS_KEY} ) && ( ( -z $AWS_KMS_KEY ) || ( ${AWS_KMS_KEY} != ${_AWS_KMS_KEY} ) ) ]]; then
+        export AWS_KMS_KEY=${_AWS_KMS_KEY}
+    fi
+
+    # _AWS_DEFAULT_PROFILE=$(echo "get AWS_DEFAULT_PROFILE" | nc -w 1 localhost 11212 | awk '/^VALUE/{flag=1;next}/^END/{flag=0}flag')
+    # _AWS_DEFAULT_PROFILE=$(get_cache_key 'AWS_DEFAULT_PROFILE')
+    # if [[ -z ${_AWS_DEFAULT_PROFILE} ]]; then
+    #   had_issue=true
+    # elif [[ ( ! -z ${_AWS_DEFAULT_PROFILE} ) && ( ( -z $AWS_DEFAULT_PROFILE ) || ( ${AWS_DEFAULT_PROFILE} != ${_AWS_DEFAULT_PROFILE} ) ) ]]; then
+    #     export AWS_DEFAULT_PROFILE=${_AWS_DEFAULT_PROFILE}
+    # fi
+
     if [[ $had_issue == true ]]; then
+      echo "AWS_ACCESS_KEY_ID = $AWS_ACCESS_KEY_ID"
+      echo "AWS_CREDENTIAL_EXPIRATION = $AWS_CREDENTIAL_EXPIRATION"
       >&2 echo "ERROR: Issues while reading memcached!"
     else
+      echo "AWS_ACCOUNT_ID = $AWS_ACCOUNT_ID"
       echo "AWS_ACCESS_KEY_ID = $AWS_ACCESS_KEY_ID"
       echo "AWS_DEFAULT_REGION = $AWS_DEFAULT_REGION"
-      echo "AWS_DEFAULT_PROFILE = $AWS_DEFAULT_PROFILE"
+      echo "AWS_CREDENTIAL_EXPIRATION = $AWS_CREDENTIAL_EXPIRATION"
     fi
 }
+
+update_aws_temp_token

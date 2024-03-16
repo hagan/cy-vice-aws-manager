@@ -119,3 +119,9 @@ fi
 # remap our global from /usr/local -> $HOME/.local
 export NPM_CONFIG_PREFIX=$HOME/.local
 
+# @TODO: This needs to be moved to a mount/share on cyverse user to preserve things!
+export PULUMI_HOME=$HOME/.pulumi
+export PULUMI_BACKEND_URL="file:///usr/local/var/pulumi"
+export PULUMI_CONFIG_PASSPHRASE=''
+
+pulumi login --local

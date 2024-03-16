@@ -114,6 +114,6 @@ fi
 
 export FLASK_APP=awsmgr.app
 
-export PULUMI_HOME=/home/cyverse/.pulumi
+export PULUMI_HOME=$HOME/.pulumi
 export PULUMI_BACKEND_URL="file:///usr/local/var/pulumi"
 export PULUMI_CONFIG_PASSPHRASE=''

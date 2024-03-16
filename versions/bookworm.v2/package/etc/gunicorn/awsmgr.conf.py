@@ -21,7 +21,6 @@ pp = pprint.PrettyPrinter(indent=4)
 #     BEARER_TOKEN = config['BEARER_TOKEN']
 
 # create local environment values out of any envprefixed wit GUNICORN_
-pp.pprint(os.environ.items())
 for k,v in os.environ.items():
     if k.startswith("GUNICORN_"):
         key = k.split('_', 1)[1].lower()

@@ -1,2 +1,7 @@
-# */1 * * * * cyverse test -e /home/cyverse/envs/flask-env/bin/awsmgr && /home/cyverse/envs/flask-env/bin/awsmgr renew-token | logger -t awsmgr -p cron.err
-# */14 * * * * cyverse test -e /home/cyverse/envs/flask-env/bin/awsmgr && /home/cyverse/envs/flask-env/bin/awsmgr renew-token | logger -t awsmgr -p cron.err
+## Note cannot use */1 -> * is every min
+
+#*/2 * * * * cyverse echo "AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}" | logger -t awsmgr -p cron.err
+*/5 * * * * cyverse test -e /home/cyverse/envs/flask-env/bin/awsmgr && /home/cyverse/envs/flask-env/bin/awsmgr renew-token 2>&1 | logger -t awsmgr -p cron.err
+# * * * * * cyverse test -e /home/cyverse/envs/flask-env/bin/awsmgr && /home/cyverse/envs/flask-env/bin/awsmgr renew-token 2>&1 | logger -t awsmgr -p cron.err
+# strings /proc/13/environ | tr '\0' '\n' | grep -e '^AWS_ACCOUNT_ID'
+# * * * * * root test -e /home/cyverse/envs/flask-env/bin/awsmgr && echo "$$ -> $(ps -o ppid= -p $$) AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}" | logger -t awsmgr -p cron.err

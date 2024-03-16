@@ -15,6 +15,8 @@ if [ ! -f $LATEST_WHL_APP ]; then
    exit 1
 elif [ -f $FLASK_VIRTUAL_ENV ]; then
   echo "Installing $LATEST_WHL_APP"
+  echo "Current virtualenv -> $FLASK_VIRTUAL_ENV"
+  whoami
   . $FLASK_VIRTUAL_ENV && pip install --force-reinstall --no-deps $LATEST_WHL_APP
   exit $?
 elif [ ! -z $VIRTUAL_ENV ]; then

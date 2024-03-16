@@ -70,6 +70,12 @@ RUN apt-get update -y && \
     binutils \
     acl \
     irods-icommands \
+  && (cd /tmp && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && /tmp/aws/install \
+    && rm awscliv2.zip \
+    && rm -rvf /tmp/aws \
+  ) \
   && pip install --root-user-action=ignore --upgrade pip \
   && adduser cyverse \
     --disabled-password --gecos "Cyverse User" \
@@ -81,7 +87,7 @@ RUN apt-get update -y && \
   && chown cyverse:cyverse /usr/local/src/cyverse \
   && chmod 0775 /usr/local/src/cyverse \
   && pip install --root-user-action=ignore --upgrade pip \
-  && pip3 install supervisor pymemcache \
+  && pip3 install supervisor pymemcache boto3 \
   && adduser gunicorn \
     --disabled-password --gecos "Gunicorn User" \
     --system \

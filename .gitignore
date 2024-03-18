@@ -168,4 +168,3 @@ dockerhub/awsmgr/docker_revisions/**/.yarn/
 dockerhub/awsmgr/docker_revisions/**/.yarnrc.yml
 dockerhub/awsmgr/docker_revisions/**/*.tgz
 dockerhub/awsmgr/docker_revisions/**/requirements.txt
-versions/**/package.tar.gz

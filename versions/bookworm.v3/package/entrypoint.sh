@@ -72,6 +72,37 @@ if [ ! -z ${GUNICORN_SOCKET_FILE} ]; then
   echo "Captured GUNICORN_SOCKET_FILE = '${GUNICORN_SOCKET_FILE}'"
 fi
 
+## using aws cli pull down the api key?
+
+if [ ! -z ${AWSGATEWAY_API_KEY_NAME}]; then
+  echo "Captured AWSGATEWAY_API_KEY_NAME = '${AWSGATEWAY_API_KEY_NAME}'"
+else
+  APIGATEWAY_API_KEY_NAME='VICE_DEMO_ACCESSKEY'
+  APIGATEWAY_ID=$(aws apigateway get-rest-apis | jq -r -c ".items[] | if .name == \"${AWSGATEWAY_API_KEY_NAME}\" then .id else empty end")
+fi
+
+
+if [[ -z $APIGATEWAY_ID ]] ; then
+   >&2 echo "ERROR: APIGATEWAY_ID returned empty!"
+else
+  echo "APIGATEWAY_ID: ${APIGATEWAY_ID}"
+  APIKEY_ID=$(aws apigateway get-api-keys --name-query "${APIGATEWAY_API_KEY_NAME}" | jq -r -c '.items[0].id')
+fi
+
+if [[ -z $APIKEY_ID ]] ; then
+   >&2 echo "ERROR: APIKEY_ID returned is empty!"
+else
+  echo "APIKEY_ID: ${APIKEY_ID}"
+  AWSKEY_RAW=$(aws apigateway get-api-key --api-key $APIKEY_ID --include-value)
+  if [[ $? -eq 0 ]]; then
+    APIKEY_VALUE=$(echo $AWSKEY_RAW | jq -r -c '.value')
+    APIKEY_NAME=$(echo $AWSKEY_RAW | jq -r -c '.name')
+    echo "APIKEY_VALUE = ${APIKEY_VALUE}"
+    echo "APIKEY_NAME = ${APIKEY_NAME}"
+  fi
+fi
+
+
 # export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_KMS_KEY AWS_DEFAULT_REGION
 
 # Take our environment variables from docker and insert into .env.local

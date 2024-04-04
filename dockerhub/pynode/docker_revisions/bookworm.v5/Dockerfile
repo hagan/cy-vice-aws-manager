@@ -1,6 +1,6 @@
 # Starting with python and adding our packages
 ARG PYNODE_PARENT_IMAGE=python
-ARG PYNODE_PARENT_TAG=3.11.8-bookworm
+ARG PYNODE_PARENT_TAG=3.11.9-bookworm
 ## Build stage for ttyd
 
 FROM debian:bookworm AS build
@@ -89,7 +89,7 @@ RUN apt-get update && \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-## copy ttyd from build step 
+## copy ttyd from build step
 COPY --from=build /usr/local/bin/ttyd /usr/local/bin/ttyd
 
 # Install MiniConda and Tini
@@ -100,8 +100,8 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 # Setup locales
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && \
     locale-gen en_US.UTF-8
-ENV LANG en_US.UTF-8  
-ENV LANGUAGE en_US:en  
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
 # install ttyd (1.6.3)
@@ -140,7 +140,7 @@ RUN apt-get update -y \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
-## NOTE: removed the following packages from this: azure-cli=2.33.1-1~bullseye, docker-ce, google-cloud-sdk, 
+## NOTE: removed the following packages from this: azure-cli=2.33.1-1~bullseye, docker-ce, google-cloud-sdk,
 ## google-cloud-sdk-gke-gcloud-auth-plugin, & kubectl
 RUN touch /etc/docker-image-ver \
   && echo "Parent image name: ${PYNODE_PARENT_IMAGE}:${PYNODE_PARENT_TAG}" >> /etc/docker-image-ver \

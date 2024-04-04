@@ -82,7 +82,8 @@ RUN apt-get update -y && \
     --uid 1000 \
     --shell /usr/bin/bash \
     --home /home/cyverse \
-  && usermod -aG cyverse www-data \
+  && usermod -aG www-data cyverse \
+  && usermod -aG sudo cyverse \
   && mkdir -p /usr/local/src/cyverse \
   && chown cyverse:cyverse /usr/local/src/cyverse \
   && chmod 0775 /usr/local/src/cyverse \
@@ -96,7 +97,7 @@ RUN apt-get update -y && \
     --shell /usr/bin/bash \
     --home /home/gunicorn \
   && usermod -aG gunicorn www-data \
-  && usermod -aG cyverse gunicorn \
+  && usermod -aG gunicorn cyverse \
   && mkdir -p /run/gunicorn-awsmgr \
   && chmod 0755 /run/gunicorn-awsmgr \
   && mkdir /run/gunicorn \
@@ -110,7 +111,7 @@ RUN apt-get update -y && \
     --shell /usr/bin/bash \
     --home /home/node \
   && usermod -aG www-data node \
-  && usermod -aG cyverse node \
+  && usermod -aG node cyverse \
   && mkdir -p /run/node-awsmgr \
   && chmod 0755 /run/node-awsmgr \
   && mkdir /run/node \

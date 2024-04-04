@@ -72,62 +72,31 @@ if [ ! -z ${GUNICORN_SOCKET_FILE} ]; then
   echo "Captured GUNICORN_SOCKET_FILE = '${GUNICORN_SOCKET_FILE}'"
 fi
 
-## using aws cli pull down the api key?
-
-if [ ! -z ${AWSGATEWAY_API_KEY_NAME}]; then
-  echo "Captured AWSGATEWAY_API_KEY_NAME = '${AWSGATEWAY_API_KEY_NAME}'"
+if [ ! -z ${APIGATEWAY_NAME} ]; then
+  export APIGATEWAY_NAME
 else
-  APIGATEWAY_API_KEY_NAME='VICE_DEMO_ACCESSKEY'
-  APIGATEWAY_ID=$(aws apigateway get-rest-apis | jq -r -c ".items[] | if .name == \"${AWSGATEWAY_API_KEY_NAME}\" then .id else empty end")
+  echo "setting APIGATEWAY_NAME='cy-awsmgr-gateway'"
+  export APIGATEWAY_NAME='cy-awsmgr-gateway'
 fi
 
-
-if [[ -z $APIGATEWAY_ID ]] ; then
-   >&2 echo "ERROR: APIGATEWAY_ID returned empty!"
+if [ ! -z ${APIGATEWAY_API_KEY_NAME} ]; then
+  echo "APIGATEWAY_API_KEY_NAME = '${APIGATEWAY_API_KEY_NAME}'"
 else
-  echo "APIGATEWAY_ID: ${APIGATEWAY_ID}"
-  APIKEY_ID=$(aws apigateway get-api-keys --name-query "${APIGATEWAY_API_KEY_NAME}" | jq -r -c '.items[0].id')
+  >&2 echo "ERROR: Provided APIGATEWAY_API_KEY_NAME var was empty"
+  export APIGATEWAY_API_KEY_NAME='VICE_DEMO_ACCESSKEY'
+  echo "Using APIGATEWAY_API_KEY_NAME='${VICE_DEMO_ACCESSKEY}'"
 fi
 
-if [[ -z $APIKEY_ID ]] ; then
-   >&2 echo "ERROR: APIKEY_ID returned is empty!"
+if [[ ! -z ${APIGATEWAY_STAGE} ]]; then
+  echo "APIGATEWAY_STAGE = '${APIGATEWAY_STAGE}'"
 else
-  echo "APIKEY_ID: ${APIKEY_ID}"
-  AWSKEY_RAW=$(aws apigateway get-api-key --api-key $APIKEY_ID --include-value)
-  if [[ $? -eq 0 ]]; then
-    APIKEY_VALUE=$(echo $AWSKEY_RAW | jq -r -c '.value')
-    APIKEY_NAME=$(echo $AWSKEY_RAW | jq -r -c '.name')
-    echo "APIKEY_VALUE = ${APIKEY_VALUE}"
-    echo "APIKEY_NAME = ${APIKEY_NAME}"
-  fi
+  echo "WARNING: APIGATEWAY_STAGE var was empty"
+  export APIGATEWAY_STAGE='dev'
+  echo "Using APIGATEWAY_STAGE='${APIGATEWAY_STAGE}'"
 fi
-
-
-# export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_KMS_KEY AWS_DEFAULT_REGION
 
 # Take our environment variables from docker and insert into .env.local
 #test -d /usr/local/src/awsmgr-ui && echo "NODE_SOCK=$NODE_SOCK" > /usr/local/src/awsmgr-ui/.env.local
-
-## test we can access aws with credentials
-
-  # AWS_ACCESS_KEY_ID='${AWS_ACCESS_KEY_ID}' \
-  # AWS_SECRET_ACCESS_KEY='${AWS_SECRET_ACCESS_KEY}' \
-  # AWS_SESSION_TOKEN='${AWS_SESSION_TOKEN}' \
-
-
-## THIS CANNOT WORK... Must start after memcached is running...
-# if [[ -z ${SKIP_AUTH_TEST} ]]; then
-#   /usr/bin/su --whitelist-environment=AWS_ACCOUNT_ID,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN,AWS_DEFAULT_REGION,AWS_CREDENTIAL_EXPIRATION - cyverse -c " \
-#   /home/cyverse/envs/flask-env/bin/awsmgr renew-token \
-#   --env AWS_ACCOUNT_ID \
-#   --env AWS_ACCESS_KEY_ID \
-#   --env AWS_SECRET_ACCESS_KEY \
-#   --env AWS_SESSION_TOKEN \
-#   --env AWS_DEFAULT_REGION \
-#   --env AWS_CREDENTIAL_EXPIRATION \
-#   --skip-memcached \
-#   --fakeit"
-# fi
 
 ## launch shell
 if [ ! -z "$RUNSHELL" ] && [ "$RUNSHELL" == "yes" ]; then

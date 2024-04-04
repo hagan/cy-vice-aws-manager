@@ -133,9 +133,16 @@ AWS_DEFAULT_REGION=
 AWS_CREDENTIAL_EXPIRATION=
 AWS_KMS_KEY=
 
+ECHO_OUTPUT=false
+
 function get_cache_key() {
     ## only works if pymemcache is available / install systemwide
     python -c "from pymemcache.client.base import Client; print(str(Client(('localhost', 11212)).get('$1', b'').decode('utf-8')));"
+}
+
+function set_cache_key() {
+    ## only works if pymemcache is available / install systemwide
+    python -c "from pymemcache.client.base import Client; client = Client(('localhost', 11212)); client.set('$1', '$2'.encode('utf-8'), expire=$3 if len('$3') > 0 else None)"
 }
 
 ## Load our credentials
@@ -199,6 +206,66 @@ function update_aws_temp_token() {
         export AWS_KMS_KEY=${_AWS_KMS_KEY}
     fi
 
+    ### API GATEWAY STUFF
+
+    _APIGATEWAY_NAME=$(get_cache_key 'APIGATEWAY_NAME')
+    if [ ! -z ${APIGATEWAY_NAME} ]; then
+      $ECHO_OUTPUT && echo "Using memcached APIGATEWAY_NAME = '${_APIGATEWAY_NAME}'"
+      export APIGATEWAY_NAME=${_APIGATEWAY_NAME}
+    else
+      $ECHO_OUTPUT && >&2 echo "WARNING 'APIGATEWAY_NAME' not a key found in memcached!"
+    fi
+
+    ## using aws cli pull down the api key?
+    # If APIGATEWAY_ID is set, use that
+    _APIGATEWAY_ID=$(get_cache_key 'APIGATEWAY_ID')
+    if [ ! -z ${_APIGATEWAY_ID} ]; then
+      $ECHO_OUTPUT && echo "Using memcached APIGATEWAY_ID = '${_APIGATEWAY_ID}'"
+      export APIGATEWAY_ID=${_APIGATEWAY_ID}
+    else
+      if [ ! -z ${APIGATEWAY_NAME} ]; then
+        export APIGATEWAY_ID=$(aws apigateway get-rest-apis | jq -r -c ".items[] | if .name == \"${APIGATEWAY_NAME}\" then .id else empty end")
+        if [[ $? -eq 0 ]] && [[ ! -z ${APIGATEWAY_ID} ]]; then
+          set_cache_key 'APIGATEWAY_ID' ${APIGATEWAY_ID} 0
+          $ECHO_OUTPUT && echo "Captured APIGATEWAY_ID = '$APIGATEWAY_ID'"
+        else
+          $ECHO_OUTPUT && echo "WARNING: couldn't determin APIGATEWAY_ID for gateway '${APIGATEWAY_NAME}'"
+        fi
+      fi
+    fi
+
+    _APIKEY_ID=$(get_cache_key 'APIKEY_ID')
+    if [ ! -z ${_APIKEY_ID} ]; then
+      $ECHO_OUTPUT && echo "Using memcached APIKEY_ID = ${_APIKEY_ID}"
+      export APIKEY_ID=${_APIKEY_ID}
+    else
+      if [ ! -z ${APIGATEWAY_API_KEY_NAME} ]; then
+        export APIKEY_ID=$(aws apigateway get-api-keys --name-query "${APIGATEWAY_API_KEY_NAME}" $@ | jq -r -c '.items[0].id')
+        if [[ $? -eq 0 ]]  && [[ ! -z ${APIKEY_ID} ]]; then
+          set_cache_key 'APIKEY_ID' ${APIKEY_ID} 0
+          $ECHO_OUTPUT && echo "Captured APIKEY_ID = '${APIKEY_ID}'"
+        else
+          $ECHO_OUTPUT && echo "WARNING: couldn't determin APIKEY_ID for gateway '${APIGATEWAY_API_KEY_NAME}'"
+        fi
+      fi
+    fi
+
+    _APIKEY_VALUE=$(get_cache_key 'APIKEY_VALUE')
+    if [ ! -z ${_APIKEY_VALUE} ]; then
+      $ECHO_OUTPUT && echo "Using memcached APIKEY_ID = ${_APIKEY_VALUE}"
+      export APIKEY_VALUE=${_APIKEY_VALUE}
+    else
+      if [ ! -z ${APIKEY_ID} ]; then
+        export APIKEY_VALUE=$(aws apigateway get-api-key --api-key $APIKEY_ID --include-value | jq -r -c '.value')
+        if [[ $? -eq 0 ]]  && [[ ! -z ${APIKEY_VALUE} ]]; then
+          set_cache_key 'APIKEY_VALUE' ${APIKEY_VALUE} 0
+          $ECHO_OUTPUT && echo "Captured APIKEY_VALUE = '${APIKEY_VALUE}'"
+        else
+          $ECHO_OUTPUT && echo "WARNING: couldn't determin APIKEY_VALUE for gateway '${APIKEY_ID}'"
+        fi
+      fi
+    fi
+
     # _AWS_DEFAULT_PROFILE=$(echo "get AWS_DEFAULT_PROFILE" | nc -w 1 localhost 11212 | awk '/^VALUE/{flag=1;next}/^END/{flag=0}flag')
     # _AWS_DEFAULT_PROFILE=$(get_cache_key 'AWS_DEFAULT_PROFILE')
     # if [[ -z ${_AWS_DEFAULT_PROFILE} ]]; then
@@ -208,15 +275,19 @@ function update_aws_temp_token() {
     # fi
 
     if [[ $had_issue == true ]]; then
-      echo "AWS_ACCESS_KEY_ID = $AWS_ACCESS_KEY_ID"
-      echo "AWS_CREDENTIAL_EXPIRATION = $AWS_CREDENTIAL_EXPIRATION"
-      >&2 echo "ERROR: Issues while reading memcached!"
+      $ECHO_OUTPUT && echo "AWS_ACCESS_KEY_ID = $AWS_ACCESS_KEY_ID"
+      $ECHO_OUTPUT && echo "AWS_CREDENTIAL_EXPIRATION = $AWS_CREDENTIAL_EXPIRATION"
+      $ECHO_OUTPUT && >&2 echo "ERROR: Issues while reading memcached!"
     else
-      echo "AWS_ACCOUNT_ID = $AWS_ACCOUNT_ID"
-      echo "AWS_ACCESS_KEY_ID = $AWS_ACCESS_KEY_ID"
-      echo "AWS_DEFAULT_REGION = $AWS_DEFAULT_REGION"
-      echo "AWS_CREDENTIAL_EXPIRATION = $AWS_CREDENTIAL_EXPIRATION"
+      $ECHO_OUTPUT && echo "AWS_ACCOUNT_ID = $AWS_ACCOUNT_ID"
+      $ECHO_OUTPUT && echo "AWS_ACCESS_KEY_ID = $AWS_ACCESS_KEY_ID"
+      $ECHO_OUTPUT && echo "AWS_DEFAULT_REGION = $AWS_DEFAULT_REGION"
+      $ECHO_OUTPUT && echo "AWS_CREDENTIAL_EXPIRATION = $AWS_CREDENTIAL_EXPIRATION"
+      $ECHO_OUTPUT && echo ""
+      $ECHO_OUTPUT && echo "APIGATEWAY_NAME = $APIGATEWAY_NAME"
+      $ECHO_OUTPUT && echo "APIGATEWAY_ID = $APIGATEWAY_ID"
+      $ECHO_OUTPUT && echo "APIKEY_ID = $APIKEY_ID"
     fi
 }
 
-update_aws_temp_token
+ECHO_OUTPUT=true && update_aws_temp_token

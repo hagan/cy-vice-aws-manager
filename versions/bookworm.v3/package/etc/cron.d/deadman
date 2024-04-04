@@ -1,1 +1,1 @@
-*/15 * * * * cyverse test -z $DEADMAN_API_URL && echo "ENV VAR 'DEADMAN_API_URL' unset!" | logger -t awsmgr -p cron.err || /usr/bin/curl -X POST "$DEADMAN_API_URL" -H 'Content-Type: application/json' 2>&1 | logger -t awsmgr -p cron.err
+*/5 * * * * cyverse /usr/local/bin/poke-deadman.sh 2>&1 | logger -t awsmgr -p cron.err

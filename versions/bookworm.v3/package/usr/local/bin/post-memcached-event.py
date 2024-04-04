@@ -12,6 +12,10 @@ DEFAULT_DURATION=1800
 DEBUG_THIS = False
 debug_print = lambda s: write_stderr(s) if DEBUG_THIS is True else None
 
+"""
+Memcached post is called after memcached initailzes and sets our environment vars into memcache!
+"""
+
 
 def memcached_check_available():
     debug_print("memcached_check_available()")
@@ -94,13 +98,17 @@ def main(args):
             # logger.info(pprint.pformat(headers))
             # logger.info(pprint.pformat(body))
             # logger.info("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^MEMCACHED^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^")
+            ## key: duration default
             env_vars = {
                 'AWS_ACCOUNT_ID': 0,
                 'AWS_ACCESS_KEY_ID': DEFAULT_DURATION-5,
                 'AWS_SECRET_ACCESS_KEY': DEFAULT_DURATION-5,
                 'AWS_SESSION_TOKEN': DEFAULT_DURATION-5,
                 'AWS_DEFAULT_REGION': 0,
-                'AWS_CREDENTIAL_EXPIRATION': DEFAULT_DURATION-5
+                'AWS_CREDENTIAL_EXPIRATION': DEFAULT_DURATION-5,
+                'APIGATEWAY_NAME': 0,
+                'APIGATEWAY_API_KEY_NAME': 0,
+                'APIGATEWAY_STAGE': 0
             }
             required_var = [
                 'AWS_ACCESS_KEY_ID', 'AWS_SECRET_ACCESS_KEY', 'AWS_SESSION_TOKEN'

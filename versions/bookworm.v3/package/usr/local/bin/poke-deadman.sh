@@ -15,4 +15,6 @@ ASTERISKS=$(printf '%*s' "$NUM_ASTERISKS" | tr ' ' '*')
 if [[ ! -z $APIGATEWAY_ID ]] && [[ ! -z $APIKEY_VALUE ]]; then
   echo "curl -X POST https://$APIGATEWAY_ID.execute-api.us-west-2.amazonaws.com/dev/deadman -H \"x-api-key: ${ASTERISKS}${APIKEY_VALUE: -4}\" -H \"Content-Type: application/json\""
   curl -X POST https://$APIGATEWAY_ID.execute-api.us-west-2.amazonaws.com/dev/deadman -H "x-api-key: ${APIKEY_VALUE}" -H "Content-Type: application/json"
+else
+  echo "poke-deadman.sh didn't run: APIGATEWAY_ID=$APIGATEWAY_ID, APIKEY_VALUE=$APIKEY_VALUE"
 fi

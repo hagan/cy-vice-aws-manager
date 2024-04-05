@@ -1,1 +1,1 @@
-*/5 * * * * cyverse /usr/local/bin/poke-deadman.sh 2>&1 | logger -t awsmgr -p cron.err
+*/5 * * * * cyverse /usr/local/bin/poke-deadman.sh | logger -t deadman -p cron.err

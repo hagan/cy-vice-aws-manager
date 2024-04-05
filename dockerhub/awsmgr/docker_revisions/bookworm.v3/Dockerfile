@@ -84,6 +84,8 @@ RUN apt-get update -y && \
     --home /home/cyverse \
   && usermod -aG www-data cyverse \
   && usermod -aG sudo cyverse \
+  && usermod -aG adm cyverse \
+  && usermod -aG systemd-journal cyverse \
   && mkdir -p /usr/local/src/cyverse \
   && chown cyverse:cyverse /usr/local/src/cyverse \
   && chmod 0775 /usr/local/src/cyverse \

@@ -48,8 +48,9 @@ server {
     }
 
     # Gunicorn APIs
-    location ~ ^/api(.*)$ {
+    location /api/v2/ {
         include proxy_params;
+        rewrite ^/api/v2(/.*)$ $1 break;
         proxy_pass http://unix:/run/gunicorn/flask-awsmgr.sock;
         proxy_read_timeout 90s;
         proxy_redirect off;
